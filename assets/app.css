@@ -529,3 +529,11 @@ body[data-page=home] .h-rep .grid.g3,body[data-page=home] .h-news .list{overflow
 ul.nb{list-style:none;display:flex;flex-direction:column;gap:5px;margin:0}
 ul.nb li{padding-left:13px;position:relative}
 ul.nb li::before{content:"";position:absolute;left:1px;top:.68em;width:5px;height:5px;border-radius:50%;background:#86868b}
+/* 2026-10-12 PC 홈: 오늘의 뉴스도 최근 보고서처럼 흰 카드로 통일 */
+@media (min-width:1100px){
+body[data-page=home] .h-news .list{display:flex;flex-direction:column;gap:8px}
+body[data-page=home] .h-news .item{display:block;background:#fff;border:1px solid #e3e3ea;border-radius:14px;padding:12px 14px;box-shadow:0 4px 14px rgba(0,0,0,.06);flex:none}
+body[data-page=home] .h-news .item .d{font-size:12px;color:#6e6e73;margin-bottom:2px}
+body[data-page=home] .h-news .item .tt{font-size:15px;font-weight:600;color:#1d1d1f}
+body[data-page=home] .h-news .item .meta{margin-top:4px}
+}
