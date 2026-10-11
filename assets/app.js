@@ -378,7 +378,7 @@
       yAxis: yVal({ scale: true, name: o.unit || "" }),
       series: series.map((s, k) => ({ name: s.name, type: "line", data: s.vals, showSymbol: false, connectNulls: true, smooth: 0.15,
         lineStyle: { width: s.bold ? 3 : 2, type: s.dash ? "dashed" : "solid", color: s.color || PAL[k % PAL.length] }, itemStyle: { color: s.color || PAL[k % PAL.length] },
-        emphasis: { focus: "series" }, endLabel: o.endLabel ? { show: true, formatter: p => auto(p.value), color: s.color || PAL[k % PAL.length], fontSize: 11 } : undefined,
+        emphasis: { focus: "series" }, labelLayout: o.endLabel ? { moveOverlap: "shiftY" } : undefined, endLabel: o.endLabel ? { show: true, formatter: p => auto(p.value), color: s.color || PAL[k % PAL.length], fontSize: 11 } : undefined,
         markLine: s.base ? { silent: true, symbol: "none", data: [{ yAxis: s.base }], lineStyle: { color: "#c7c7cc", type: "dashed" }, label: { show: false } } : undefined })),
     });
   }
