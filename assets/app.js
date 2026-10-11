@@ -605,11 +605,17 @@
     toggleData($("#sfData"), $("#sfDataBox"), () => { const g = sf[si]; dataTable($("#sfDataBox"), ["날짜", "외국인(억)", "기관(억)", "개인(억)"], g.dates.map((x, i) => [x, g.foreign[i], g.organ[i], g.individual[i]]).reverse(), "섹터수급_" + g.group); });
     // PPI
     const ppi = d.ppi; const pEl = $("#ppiChart"), pyEl = $("#ppiYoy");
-    if (ppi && pEl) lazy(pEl, c => c.setOption(lineOption(ppi.dates, ppi.series.map(s => ({ name: s.name, vals: s.vals })), { unit: "(지수)", zoom: true, endLabel: true })));
-    if (ppi && pyEl) lazy(pyEl, c => c.setOption(base({ tooltip: Object.assign(base().tooltip, { valueFormatter: v => v == null ? "-" : fmt(v, 1) + "%" }), xAxis: xCat(ppi.dates), yAxis: yVal({ name: "YoY(%)" }),
-      series: ppi.series.map((s, k) => ({ name: s.name + " YoY", type: "line", data: s.yoy, showSymbol: false, smooth: 0.15, connectNulls: true,
-        lineStyle: { width: 2, color: PAL[k] }, itemStyle: { color: PAL[k] },
-        markLine: k ? undefined : { silent: true, symbol: "none", data: [{ yAxis: 0 }], lineStyle: { color: "#c7c7cc" }, label: { show: false } } })) })));
+    // 두 차트 같은 모양: 오른쪽 끝 값 라벨(같은 여백) + 마지막 데이터에 표식 (2026-10-12)
+    const lastMark = (vals, col) => { let i = vals.length - 1; while (i >= 0 && vals[i] == null) i--;
+      return i < 0 ? [] : [{ coord: [i, vals[i]], value: vals[i], symbol: "circle", symbolSize: 9, itemStyle: { color: "#fff", borderColor: col, borderWidth: 2.5 }, label: { show: false } }]; };
+    const ppiOpt = (key, unit, suf) => {
+      const o = lineOption(ppi.dates, ppi.series.map((s, k) => ({ name: s.name + (key === "yoy" ? " YoY" : ""), vals: s[key], color: PAL[k] })), { unit, suf, endLabel: true });
+      o.series.forEach((sr, k) => { sr.markPoint = { silent: true, data: lastMark(ppi.series[k][key], PAL[k]) };
+        if (sr.endLabel) sr.endLabel.formatter = p => key === "yoy" ? fmt(p.value, 1) + "%" : fmt(p.value, 0);
+        if (key === "yoy" && !k) sr.markLine = { silent: true, symbol: "none", data: [{ yAxis: 0 }], lineStyle: { color: "#c7c7cc" }, label: { show: false } }; });
+      o.grid.right = 56; return o; };
+    if (ppi && pEl) lazy(pEl, c => c.setOption(ppiOpt("vals", "(지수)", "")));
+    if (ppi && pyEl) lazy(pyEl, c => c.setOption(ppiOpt("yoy", "YoY(%)", "%")));
     toggleData($("#ppiData"), $("#ppiDataBox"), () => dataTable($("#ppiDataBox"), ["월", ...ppi.series.map(s => s.name), ...ppi.series.map(s => s.name + " YoY")], ppi.dates.map((x, i) => [x, ...ppi.series.map(s => s.vals[i]), ...ppi.series.map(s => s.yoy[i])]).reverse(), "미국변압기PPI"));
     // 무역
     const tr = d.trade || {}; let tk = Object.keys(tr)[0], hs = "850423", per = "월간";
