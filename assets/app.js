@@ -606,14 +606,20 @@
     // PPI
     const ppi = d.ppi; const pEl = $("#ppiChart"), pyEl = $("#ppiYoy");
     // 두 차트 같은 모양: 오른쪽 끝 값 라벨(같은 여백) + 마지막 데이터에 표식 (2026-10-12)
-    const lastMark = (vals, col) => { let i = vals.length - 1; while (i >= 0 && vals[i] == null) i--;
-      return i < 0 ? [] : [{ coord: [i, vals[i]], value: vals[i], symbol: "circle", symbolSize: 9, itemStyle: { color: "#fff", borderColor: col, borderWidth: 2.5 }, label: { show: false } }]; };
+    // 마지막 데이터: 표식 + 값 라벨을 점 위/아래에 (위쪽 선은 위로, 아래쪽 선은 아래로) → 오른쪽 여백 없이 차트를 넓게
+    const lastIdx = vals => { let i = vals.length - 1; while (i >= 0 && vals[i] == null) i--; return i; };
     const ppiOpt = (key, unit, suf) => {
-      const o = lineOption(ppi.dates, ppi.series.map((s, k) => ({ name: s.name + (key === "yoy" ? " YoY" : ""), vals: s[key], color: PAL[k] })), { unit, suf, endLabel: true });
-      o.series.forEach((sr, k) => { sr.markPoint = { silent: true, data: lastMark(ppi.series[k][key], PAL[k]) };
-        if (sr.endLabel) sr.endLabel.formatter = p => key === "yoy" ? fmt(p.value, 1) + "%" : fmt(p.value, 0);
+      const o = lineOption(ppi.dates, ppi.series.map((s, k) => ({ name: s.name + (key === "yoy" ? " YoY" : ""), vals: s[key], color: PAL[k] })), { unit, suf, endLabel: false });
+      const lasts = ppi.series.map(s => { const i = lastIdx(s[key]); return i < 0 ? null : s[key][i]; });
+      const top = Math.max(...lasts.filter(v => v != null));
+      o.series.forEach((sr, k) => { const vals = ppi.series[k][key], i = lastIdx(vals); if (i < 0) return;
+        const up = lasts[k] === top;
+        sr.markPoint = { silent: true, data: [{ coord: [i, vals[i]], value: vals[i], symbol: "circle", symbolSize: 9,
+          itemStyle: { color: "#fff", borderColor: PAL[k], borderWidth: 2.5 },
+          label: { show: true, position: up ? "top" : "bottom", distance: 6, color: PAL[k], fontSize: 11, fontWeight: 600,
+                   formatter: () => key === "yoy" ? fmt(vals[i], 1) + "%" : fmt(vals[i], 0) } }] };
         if (key === "yoy" && !k) sr.markLine = { silent: true, symbol: "none", data: [{ yAxis: 0 }], lineStyle: { color: "#c7c7cc" }, label: { show: false } }; });
-      o.grid.right = 56; return o; };
+      o.grid.right = 22; return o; };
     if (ppi && pEl) lazy(pEl, c => c.setOption(ppiOpt("vals", "(지수)", "")));
     if (ppi && pyEl) lazy(pyEl, c => c.setOption(ppiOpt("yoy", "YoY(%)", "%")));
     toggleData($("#ppiData"), $("#ppiDataBox"), () => dataTable($("#ppiDataBox"), ["월", ...ppi.series.map(s => s.name), ...ppi.series.map(s => s.name + " YoY")], ppi.dates.map((x, i) => [x, ...ppi.series.map(s => s.vals[i]), ...ppi.series.map(s => s.yoy[i])]).reverse(), "미국변압기PPI"));
