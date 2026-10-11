@@ -167,7 +167,8 @@
     if (!o.legend || w >= 600 || o.legend.show === false) return o;
     const names = (o.legend.data || o.series.map(s => s.name)).filter((n, i, a) => n && a.indexOf(n) === i && !/합계$/.test(n));
     let rows = 1, x = 0;
-    names.forEach(n => { const iw = 26 + String(n).length * 12; if (x + iw > w) { rows++; x = 0; } x += iw; });
+    const tw = s => [...String(s)].reduce((t, ch) => t + (/[가-힣]/.test(ch) ? 12.5 : /\s/.test(ch) ? 3.5 : 7.2), 0);   // 글자 폭 추정 (한글/영문 구분)
+    names.forEach(n => { const iw = 24 + tw(n); if (x + iw > w) { rows++; x = 0; } x += iw; });
     const lh = 22;
     const zoom = Array.isArray(o.dataZoom) ? o.dataZoom.some(z => z.type === "slider") : false;
     o.legend = Object.assign({}, o.legend, { type: "plain", top: undefined, bottom: zoom ? 34 : 0, left: 0, right: 0, itemGap: 12, data: names });
@@ -619,7 +620,11 @@
           label: { show: true, position: up ? "top" : "bottom", distance: 6, color: PAL[k], fontSize: 11, fontWeight: 600,
                    formatter: () => key === "yoy" ? fmt(vals[i], 1) + "%" : fmt(vals[i], 0) } }] };
         if (key === "yoy" && !k) sr.markLine = { silent: true, symbol: "none", data: [{ yAxis: 0 }], lineStyle: { color: "#c7c7cc" }, label: { show: false } }; });
-      o.grid.right = 22; return o; };
+      // 두 차트 x축 눈금 통일: 3년마다 1월에만 표시
+     const y0 = +String(ppi.dates[0]).slice(0, 4);
+     Object.assign(o.xAxis.axisLabel, { hideOverlap: false, interval: (i, v) => /-01$/.test(v) && (+v.slice(0, 4) - y0) % 3 === 0 });
+     o.xAxis.axisTick = { show: false };
+     o.grid.right = 22; return o; };
     if (ppi && pEl) lazy(pEl, c => c.setOption(ppiOpt("vals", "(지수)", "")));
     if (ppi && pyEl) lazy(pyEl, c => c.setOption(ppiOpt("yoy", "YoY(%)", "%")));
     toggleData($("#ppiData"), $("#ppiDataBox"), () => dataTable($("#ppiDataBox"), ["월", ...ppi.series.map(s => s.name), ...ppi.series.map(s => s.name + " YoY")], ppi.dates.map((x, i) => [x, ...ppi.series.map(s => s.vals[i]), ...ppi.series.map(s => s.yoy[i])]).reverse(), "미국변압기PPI"));
