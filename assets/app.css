@@ -479,3 +479,5 @@ body[data-page=coverage] main > section:not(.hero) > .wide{max-width:1024px}
 
 .gnav .dd-sec.dd-link{color:var(--fg);text-decoration:none}
 .gnav .dd-sec.dd-link:hover{text-decoration:none}
+
+footer .disc{font-size:11px;line-height:1.6;color:var(--fg2);opacity:.85}
