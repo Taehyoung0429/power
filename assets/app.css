@@ -481,3 +481,43 @@ body[data-page=coverage] main > section:not(.hero) > .wide{max-width:1024px}
 .gnav .dd-sec.dd-link:hover{text-decoration:none}
 
 footer .disc{font-size:11px;line-height:1.6;color:var(--fg2);opacity:.85}
+
+/* 2026-10-12 PC 홈: 한 화면 대시보드 (2안). 모바일·태블릿(<1100px)은 기존 그대로. 이전 버전: backup/home_v1_20261012 */
+@media (min-width:1100px){
+body[data-page=home] .hero-full{display:none}
+body[data-page=home] .hbody{display:grid;grid-template-columns:1.6fr 1fr 1fr;grid-template-rows:auto minmax(0,1fr);gap:14px;max-width:1400px;margin:0 auto;
+  padding:16px 24px 18px;height:calc(100vh - var(--nav));min-height:600px;background:none}
+body[data-page=home]{background:linear-gradient(180deg,#eef3ff 0,#f3f0ff 55%,#fff3f1 100%)}
+body[data-page=home] .hsec{margin:0!important;min-height:0;min-width:0}
+body[data-page=home] .hsec>.wrap{max-width:none;padding:0;height:100%}
+body[data-page=home] #cov{grid-column:1/-1;order:1}
+body[data-page=home] .h-rel{order:2}body[data-page=home] .h-rep{order:3}body[data-page=home] .h-news{order:4}
+body[data-page=home] .slab{padding:16px 18px;border-radius:22px;height:100%;display:flex;flex-direction:column;overflow:hidden;opacity:1;transform:none}
+body[data-page=home] .slab .sec-head{margin-bottom:10px;align-items:center;flex-wrap:nowrap}
+body[data-page=home] .slab .eyebrow{display:none}
+body[data-page=home] .slab .h2{font-size:19px;letter-spacing:-.02em}
+body[data-page=home] .slab .more{font-size:13px}
+body[data-page=home] .rail.in-slab .track{padding:2px 2px 4px;gap:10px;-webkit-mask-image:none;mask-image:none}
+body[data-page=home] .rail .ctrl{position:absolute;top:-38px;right:120px;gap:8px}
+body[data-page=home] .rail .ctrl button{width:26px;height:26px;font-size:15px}
+body[data-page=home] .rail.in-slab .tile{flex:0 0 205px;min-height:0;padding:12px 14px 10px;gap:3px;border-radius:16px}
+body[data-page=home] .tile .en{display:none}
+body[data-page=home] .tile .sector{font-size:10.5px}
+body[data-page=home] .tile .nm{font-size:16px}
+body[data-page=home] .tile .badge,body[data-page=home] .tile .chip{font-size:10.5px}
+body[data-page=home] .tile .spark{height:38px;margin:2px -4px 0}
+body[data-page=home] .tile .up-big{font-size:19px}
+body[data-page=home] .tile .small{font-size:10.5px}
+body[data-page=home] .tile .bot div[style]{font-size:12.5px}
+body[data-page=home] .h-rel .seg{transform:scale(.85);transform-origin:right center}
+body[data-page=home] #homeRel{flex:1;min-height:0;height:auto}
+body[data-page=home] .h-rep .grid.g3{display:flex;flex-direction:column;gap:8px;min-height:0;overflow:hidden}
+body[data-page=home] .h-rep .rcard{padding:12px 14px;gap:4px!important;border-radius:14px;flex:none}
+body[data-page=home] .h-rep .rcard .h4{font-size:15px}
+body[data-page=home] .h-rep ul.rh li{font-size:12px}
+body[data-page=home] .h-rep .rcard>div:last-child{display:none}
+body[data-page=home] .h-news .list{min-height:0;overflow:hidden}
+body[data-page=home] .h-news .item{padding:8px 0;gap:12px;grid-template-columns:78px 1fr}
+body[data-page=home] .h-news .tt{font-size:14px}
+body[data-page=home] .h-news .d,body[data-page=home] .h-news .meta{font-size:11.5px}
+}
