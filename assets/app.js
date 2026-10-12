@@ -510,6 +510,12 @@
       lazy(rv, c => { drawRev(c); window.addEventListener("resize", () => setTimeout(() => sep(c), 50)); });
       seg($("#revSeg"), v => { yr = v; rv._chart && drawRev(rv._chart); });
     }
+    const dm = $("#discMore");
+    if (dm) dm.addEventListener("click", () => {   // 공시: 10건 + 더 보기
+      const hid = $$("#discList .more-item"); const open = hid[0].hidden;
+      hid.forEach(x => { x.hidden = !open; });
+      dm.textContent = open ? "접기" : `더 보기 (${hid.length}건)`;
+    });
     const nm = $("#newsMore");
     if (nm) nm.addEventListener("click", () => {   // 뉴스: 8건 + 더 보기
       const hid = $$("#newsList .more-item"); const open = hid[0].hidden;

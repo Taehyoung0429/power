@@ -549,3 +549,6 @@ body[data-page=home] .h-news .item .meta{grid-row:1;grid-column:2;margin:0;font-
 body[data-page=home] .h-news .item .meta::before{content:"· "}
 body[data-page=home] .h-news .item .tt{grid-row:2;grid-column:1/-1}
 }
+.dk{display:inline-block;font-size:11px;font-weight:600;padding:1px 8px;border-radius:8px;background:#f0f0f5;color:#6e6e73}
+.dk-수주{background:#e8f1ff;color:#0062d1}.dk-실적{background:#eafaf0;color:#1f8a4c}.dk-자본{background:#fff4e5;color:#b35c00}
+.dk-지배구조{background:#f3edff;color:#6b47d6}.dk-정기{background:#f0f0f5;color:#515154}
