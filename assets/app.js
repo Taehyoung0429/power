@@ -565,21 +565,20 @@
     seg($("#relMode"), v => { relMode = v; drawRel(); });
     toggleData($("#relData"), $("#relDataBox"), () => { const g = rel[gi]; dataTable($("#relDataBox"), ["날짜", ...g.series.map(s => s.name)], g.dates.map((x, i) => [x, ...g.series.map(s => (relMode === "rel" ? s.rel : s.abs)[i])]).reverse(), "상대주가_" + g.group); });
     // PER·PBR
-    const pp = d.per_pbr || []; let pg = 0, pk = "per";
-    const ppEl = $("#ppChart");
-    const drawPP = () => { const g = pp[pg]; if (!g || !ppEl._chart) return; const obj = g[pk];
-      // 선 그래프: x = 연도, 선 = 기업 (2026-10-11)
+    const pp = d.per_pbr || []; let pg = 0;
+    // PER·PBR 을 좌우 두 그래프로 (2026-10-12, PPI 와 같은 배치). x = 연도, 선 = 기업
+    const ppEls = { per: $("#ppChart"), pbr: $("#pbChart") };
+    const drawOne = pk => { const g = pp[pg], el = ppEls[pk]; if (!g || !el || !el._chart) return; const obj = g[pk];
       const cap = pk === "per" ? 150 : 40;
-      ppEl._chart.setOption(base({ tooltip: Object.assign(base().tooltip, { valueFormatter: v => v == null ? "-" : fmt(v, pk === "per" ? 1 : 2) + "배" }),
+      el._chart.setOption(base({ tooltip: Object.assign(base().tooltip, { valueFormatter: v => v == null ? "-" : fmt(v, pk === "per" ? 1 : 2) + "배" }),
         legend: Object.assign(base().legend, { type: "plain" }),
         xAxis: xCat(g.years, { boundaryGap: true, axisLabel: { color: "#1d1d1f", fontSize: 12 } }), yAxis: yVal({ name: "(배)" }),
         series: Object.entries(obj).map(([nm, a], k) => ({ name: nm, type: "line", data: a.map(v => v != null && v < cap ? v : null), connectNulls: false,
           symbol: "circle", symbolSize: 7, lineStyle: { width: 2.5, color: PAL[k % PAL.length] }, itemStyle: { color: "#fff", borderColor: PAL[k % PAL.length], borderWidth: 2 },
-          label: { show: true, position: "top", fontSize: 10, color: PAL[k % PAL.length], formatter: p => p.value == null ? "" : fmt(p.value, 1) }, labelLayout: { hideOverlap: true } })) }), true);
-      $("#ppNote").textContent = g.basis + " · 150배 넘는 PER 은 그래프에서 생략"; };
-    if (ppEl) lazy(ppEl, () => drawPP());
+          label: { show: true, position: "top", fontSize: 10, color: PAL[k % PAL.length], formatter: p => p.value == null ? "" : fmt(p.value, 1) }, labelLayout: { hideOverlap: true } })) }), true); };
+    const drawPP = () => { drawOne("per"); drawOne("pbr"); const g = pp[pg]; if (g) $("#ppNote").textContent = g.basis + " · 150배 넘는 PER 은 그래프에서 생략"; };
+    Object.values(ppEls).forEach(el => { if (el) lazy(el, () => drawPP()); });
     seg($("#ppSeg"), v => { pg = +v; drawPP(); });
-    seg($("#ppKind"), v => { pk = v; drawPP(); });
     toggleData($("#ppData"), $("#ppDataBox"), () => { const g = pp[pg]; const names = Object.keys(g.per);
       dataTable($("#ppDataBox"), ["연도", ...names.map(n => n + " PER"), ...Object.keys(g.pbr).map(n => n + " PBR")], g.years.map((y, k) => [y, ...names.map(n => g.per[n][k]), ...Object.keys(g.pbr).map(n => g.pbr[n][k])]), "PER_PBR"); });
     // 외국인 보유율
