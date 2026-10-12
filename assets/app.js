@@ -126,9 +126,12 @@
     if (!el) return;
     const go = () => { if (el._chart) return; const c = echarts.init(el, null, { renderer: "svg" }); el._chart = c; charts.push(c);
       const orig = c.setOption.bind(c);
-      c.setOption = (o, ...a) => orig(o && o.series ? alignZero(mobileLegend(o, el)) : o, ...a);   // 좁은 화면: 범례를 아래로, 줄바꿈
+      // y축 제목은 위치를 맞추기 전까지 숨김 → 처음부터 숫자 열 위에 나타남 (움직이며 재정렬되는 모습 없앰, 2026-10-12)
+      const hideNames = o => { const ys = o.yAxis == null ? [] : Array.isArray(o.yAxis) ? o.yAxis : [o.yAxis];
+        ys.forEach(ax => { if (ax && ax.name) ax.nameTextStyle = Object.assign({}, ax.nameTextStyle, { opacity: 0 }); }); return o; };
+      c.setOption = (o, ...a) => orig(o && o.series ? hideNames(alignZero(mobileLegend(o, el))) : o, ...a);   // 좁은 화면: 범례를 아래로, 줄바꿈
       if ("ResizeObserver" in window) new ResizeObserver(() => c.resize()).observe(el);  // 패널 폭이 바뀌면 다시 맞춤
-      c.on("finished", () => alignAxisNames(c)); build(c); };
+      c.on("rendered", () => alignAxisNames(c)); c.on("finished", () => alignAxisNames(c)); build(c); };
     if (!("IntersectionObserver" in window)) return go();
     const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { io.disconnect(); go(); } }), { rootMargin: "120px" });
     io.observe(el);
@@ -196,8 +199,8 @@
       const right = (m.axis && m.axis.position === "right") || m.get("position") === "right";
       const pad = right ? [0, 0, 0, shift] : [0, shift, 0, 0];
       const cur = (ax.nameTextStyle || {}).padding;
-      if (!cur || cur[1] !== pad[1] || cur[3] !== pad[3] || (ax.nameTextStyle || {}).align !== "center") changed = true;
-      upd.push({ nameTextStyle: Object.assign({}, ax.nameTextStyle, { align: "center", padding: pad }) });
+      if (!cur || cur[1] !== pad[1] || cur[3] !== pad[3] || (ax.nameTextStyle || {}).align !== "center" || (ax.nameTextStyle || {}).opacity === 0) changed = true;
+      upd.push({ nameTextStyle: Object.assign({}, ax.nameTextStyle, { align: "center", padding: pad, opacity: 1 }) });
       // 제목이 숫자 열보다 넓어 가장자리에서 잘리면 그만큼 여백을 늘림
       _cv.font = `${(ax.nameTextStyle && ax.nameTextStyle.fontSize) || 11}px ${FONT}`;
       const nw = _cv.measureText(String(ax.name)).width;
