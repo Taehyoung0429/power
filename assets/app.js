@@ -427,10 +427,17 @@
       const draw = c => {
         const days = { "1m": 31, "3m": 92, "6m": 183, "1y": 366 }[rg];
         const cut = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);
-        const D = d.covrel.dates; let s = D.findIndex(x => x >= cut); if (s < 0) s = 0;
+        // 장중 주가(live.json)가 있으면 오늘 값을 마지막 점으로 붙임 (같은 날짜면 바꿔 씀)
+        let D = d.covrel.dates, SER = d.covrel.series; const L = window.__live;
+        if (L && L.at) { const day = L.at.slice(0, 10), last = D[D.length - 1];
+          if (day >= last) { const add = day > last;
+            SER = SER.map(x => { const q = L.q[x.key]; const lv = q && q.p ? q.p : null;
+              return Object.assign({}, x, { vals: add ? x.vals.concat([lv != null ? lv : x.vals[x.vals.length - 1]]) : (lv != null ? x.vals.slice(0, -1).concat([lv]) : x.vals) }); });
+            if (add) D = D.concat([day]); } }
+        let s = D.findIndex(x => x >= cut); if (s < 0) s = 0;
         const COV = ["#0071e3", "#ff9f0a", "#34c759", "#bf5af2", "#ff375f", "#64d2ff", "#5e5ce6", "#a2845e", "#ffcc00", "#30b0c7", "#e5484d"];
         let k = 0;
-        const ser = d.covrel.series.map(x => { const v = x.vals.slice(s); const b = v.find(y => y != null);
+        const ser = SER.map(x => { const v = x.vals.slice(s); const b = v.find(y => y != null);
           return { name: x.name, vals: v.map(y => y == null || !b ? null : +(y / b * 100).toFixed(1)), dash: x.index,
                    color: x.index ? (x.name === "KOSPI" ? "#6e6e73" : "#aeaeb2") : COV[k++ % COV.length], base: 100 }; });
         const o = lineOption(D.slice(s), ser, { unit: `(${D[s].slice(2).replace(/-/g, ".")}=100)`, endLabel: true });
@@ -440,6 +447,7 @@
       };
       lazy(rc, c => draw(c));
       seg($("#homeRelSeg"), v => { rg = v; rc._chart && draw(rc._chart); });
+      document.addEventListener("live", () => { rc._chart && draw(rc._chart); });
     }
   };
   P.coverage = d => {
@@ -693,6 +701,7 @@
   const base = src.replace(/app\.js.*$/, "");
   fetch(base + "live.json?t=" + Date.now(), { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(L => {
     if (!L || !L.q) return;
+    window.__live = L; document.dispatchEvent(new Event("live"));
     const money = (v, ccy) => ccy === "USD" ? "$" + v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : Math.round(v).toLocaleString("ko-KR") + "원";
     const fp = (v, d = 1) => v == null ? "-" : (v > 0 ? "+" : "") + v.toFixed(d) + "%";
     const cls = (el, v) => { el.classList.remove("up", "down"); if (v > 0) el.classList.add("up"); else if (v < 0) el.classList.add("down"); };
