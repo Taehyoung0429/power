@@ -686,3 +686,27 @@
     if (P[page]) P[page](DATA);
   });
 })();
+
+// 장중 주가 (2026-10-12): assets/live.json (live_prices.py 가 10분마다 갱신) 을 읽어 현재가·등락률·상승여력을 바꿔 그림
+(() => {
+  const src = (document.currentScript || {}).src || "";
+  const base = src.replace(/app\.js.*$/, "");
+  fetch(base + "live.json?t=" + Date.now(), { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(L => {
+    if (!L || !L.q) return;
+    const money = (v, ccy) => ccy === "USD" ? "$" + v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : Math.round(v).toLocaleString("ko-KR") + "원";
+    const fp = (v, d = 1) => v == null ? "-" : (v > 0 ? "+" : "") + v.toFixed(d) + "%";
+    const cls = (el, v) => { el.classList.remove("up", "down"); if (v > 0) el.classList.add("up"); else if (v < 0) el.classList.add("down"); };
+    const label = q => q.s === "US" ? q.t.slice(5, 10).replace("-", "/") + " (미국)" : (q.s === "NXT" ? "NXT " : "") + q.t.slice(5).replace("-", "/");
+    document.querySelectorAll("[data-lv]").forEach(el => {
+      const host = el.closest("[data-code]"); if (!host) return;
+      const q = L.q[host.dataset.code]; if (!q || !q.p) return;
+      switch (el.dataset.lv) {
+        case "px": el.textContent = money(q.p, el.dataset.ccy); if ("v" in el.dataset) el.dataset.v = q.p; break;
+        case "chg": el.textContent = fp(q.c, 2); cls(el, q.c); break;
+        case "at": el.textContent = "현재가 " + label(q); break;
+        case "atchg": el.textContent = label(q) + " " + fp(q.c, 2); cls(el, q.c); break;
+        case "up": { const tp = +el.dataset.tp; if (tp) { const u = (tp / q.p - 1) * 100; el.textContent = fp(u); cls(el, u); if ("v" in el.dataset) el.dataset.v = u.toFixed(1); } break; }
+      }
+    });
+  }).catch(() => {});
+})();
