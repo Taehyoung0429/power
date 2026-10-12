@@ -552,3 +552,13 @@ body[data-page=home] .h-news .item .tt{grid-row:2;grid-column:1/-1}
 .dk{display:inline-block;font-size:11px;font-weight:600;padding:1px 8px;border-radius:8px;background:#f0f0f5;color:#6e6e73}
 .dk-수주{background:#e8f1ff;color:#0062d1}.dk-실적{background:#eafaf0;color:#1f8a4c}.dk-자본{background:#fff4e5;color:#b35c00}
 .dk-지배구조{background:#f3edff;color:#6b47d6}.dk-정기{background:#f0f0f5;color:#515154}
+/* 공시 목록: 한 줄로 촘촘하게 (2026-10-12) */
+#discList .item{padding:9px 0;align-items:center}
+#discList .d{font-size:13px}
+#discList .dl{display:flex;align-items:center;gap:10px;min-width:0}
+#discList .dl .tt{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#discList .dk{flex:none;width:56px;text-align:center}
+#discList .fx{flex:none;font-size:11px;color:#86868b}
+@media (max-width:640px){#discList .dl .tt{font-size:14px}#discList .dk{width:auto}}
+#discList .item{grid-template-columns:96px 1fr;gap:12px}@media (max-width:640px){#discList .item{grid-template-columns:78px 1fr;gap:8px}#discList .d{font-size:12px}}
+.list .item[hidden]{display:none}
