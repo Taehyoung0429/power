@@ -631,7 +631,8 @@
     seg($("#sfRange"), v => { srg = v; drawSf(); sfStats(); });
     toggleData($("#sfData"), $("#sfDataBox"), () => { const g = sf[si]; dataTable($("#sfDataBox"), ["날짜", "외국인(억)", "기관(억)", "개인(억)"], g.dates.map((x, i) => [x, g.foreign[i], g.organ[i], g.individual[i]]).reverse(), "섹터수급_" + g.group); });
     // PPI
-    const ppi = d.ppi; const pEl = $("#ppiChart"), pyEl = $("#ppiYoy");
+    // 전력기기 PPI: 묶음(변압기 / 배전기기·배전반 / 전력 및 통신선) 버튼으로 바꿔 그림 (2026-10-12)
+    const ppiGroups = d.ppi ? (d.ppi.groups || [d.ppi]) : []; let ppi = ppiGroups[0]; const pEl = $("#ppiChart"), pyEl = $("#ppiYoy");
     // 두 차트 같은 모양: 오른쪽 끝 값 라벨(같은 여백) + 마지막 데이터에 표식 (2026-10-12)
     // 마지막 데이터: 표식 + 값 라벨을 점 위/아래에 (위쪽 선은 위로, 아래쪽 선은 아래로) → 오른쪽 여백 없이 차트를 넓게
     const lastIdx = vals => { let i = vals.length - 1; while (i >= 0 && vals[i] == null) i--; return i; };
@@ -650,10 +651,13 @@
      const y0 = +String(ppi.dates[0]).slice(0, 4);
      Object.assign(o.xAxis.axisLabel, { hideOverlap: false, interval: (i, v) => /-01$/.test(v) && (+v.slice(0, 4) - y0) % 3 === 0 });
      o.xAxis.axisTick = { show: false };
-     o.grid.right = 22; return o; };
+     o.grid.right = key === "yoy" ? 30 : 22; return o; };   // YoY 라벨(예: 13.3%)이 오른쪽에서 잘리지 않게
+    const drawPpi = () => { if (!ppi) return; const t = $("#ppiTitle"); if (t) t.textContent = "미국 " + ppi.name + " PPI";
+      if (pEl && pEl._chart) pEl._chart.setOption(ppiOpt("vals", "(지수)", ""), true);
+      if (pyEl && pyEl._chart) pyEl._chart.setOption(ppiOpt("yoy", "YoY(%)", "%"), true); };
     if (ppi && pEl) lazy(pEl, c => c.setOption(ppiOpt("vals", "(지수)", "")));
     if (ppi && pyEl) lazy(pyEl, c => c.setOption(ppiOpt("yoy", "YoY(%)", "%")));
-    toggleData($("#ppiData"), $("#ppiDataBox"), () => dataTable($("#ppiDataBox"), ["월", ...ppi.series.map(s => s.name), ...ppi.series.map(s => s.name + " YoY")], ppi.dates.map((x, i) => [x, ...ppi.series.map(s => s.vals[i]), ...ppi.series.map(s => s.yoy[i])]).reverse(), "미국변압기PPI"));
+    seg($("#ppiSeg"), v => { ppi = ppiGroups[+v] || ppiGroups[0]; drawPpi(); });
     // 무역
     const tr = d.trade || {}; let tk = Object.keys(tr)[0], hs = "850423", per = "월간";
     const tEl = $("#trChart");
