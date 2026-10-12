@@ -541,3 +541,11 @@ body[data-page=home] .h-rep .grid.g3::-webkit-scrollbar,body[data-page=home] .h-
 body[data-page=home] .h-rep .grid.g3::-webkit-scrollbar-thumb,body[data-page=home] .h-news .list::-webkit-scrollbar-thumb{background:#c7c7cc;border-radius:3px}
 body[data-page=home] .h-rep .grid.g3::-webkit-scrollbar-track,body[data-page=home] .h-news .list::-webkit-scrollbar-track{background:transparent}
 }
+@media (min-width:960px){   /* 홈 뉴스 카드: 날짜·시간 옆에 출처·섹터 한 줄, 아래 제목 (2026-10-12) */
+body[data-page=home] .h-news .item{display:grid;grid-template-columns:auto 1fr;column-gap:8px;row-gap:3px;align-items:baseline;padding:10px 14px}
+body[data-page=home] .h-news .item>div:nth-child(2){display:contents}
+body[data-page=home] .h-news .item .d{grid-row:1;grid-column:1;margin:0;white-space:nowrap}
+body[data-page=home] .h-news .item .meta{grid-row:1;grid-column:2;margin:0;font-size:12px;color:#86868b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body[data-page=home] .h-news .item .meta::before{content:"· "}
+body[data-page=home] .h-news .item .tt{grid-row:2;grid-column:1/-1}
+}
