@@ -621,7 +621,7 @@
     seg($("#frRange"), v => { frg = v; drawFr(); });
     toggleData($("#frData"), $("#frDataBox"), () => { const g = fr[fi]; dataTable($("#frDataBox"), ["날짜", ...g.series.map(s => s.name)], g.dates.map((x, i) => [x, ...g.series.map(s => s.vals[i])]).reverse(), "외국인보유율"); });
     // 섹터 수급 합산 (기업 수급 차트와 같은 모양: 일별 막대 + 누적 선, 억원)
-    const sf = d.sflow || []; let si = Math.max(0, sf.findIndex(g => g.group === "변압기")), srg = "3m";
+    const sf = d.sflow || []; let si = 0, srg = "3m";   // 첫 그룹(메뉴 순서대로)부터
     const sfEl = $("#sfChart");
     const sfStats = () => { const g = sf[si]; if (!g) return; const n = { "1m": 21, "3m": 63, "6m": 126, "1y": 240 }[srg], LAB = { "1m": "1개월", "3m": "3개월", "6m": "6개월", "1y": "1년" }[srg];
       const sum = a => a.slice(-n).reduce((t, v) => t + (v || 0), 0);
