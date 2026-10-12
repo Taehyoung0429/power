@@ -562,3 +562,9 @@ body[data-page=home] .h-news .item .tt{grid-row:2;grid-column:1/-1}
 @media (max-width:640px){#discList .dl .tt{font-size:14px}#discList .dk{width:auto}}
 #discList .item{grid-template-columns:96px 1fr;gap:12px}@media (max-width:640px){#discList .item{grid-template-columns:78px 1fr;gap:8px}#discList .d{font-size:12px}}
 .list .item[hidden]{display:none}
+#discList .item{grid-template-columns:130px 1fr}
+#discList .tm{margin-left:6px;color:#a1a1a6;font-size:12px}
+#discList .rx{margin-left:auto;flex:none;font-size:14px;font-weight:600;color:#6e6e73;white-space:nowrap;padding-left:10px}
+#discList .rx small{font-size:10.5px;font-weight:500;color:#a1a1a6;margin-left:4px}
+#discList .rx.up{color:var(--up)}#discList .rx.down{color:var(--down)}
+@media (max-width:640px){#discList .item{grid-template-columns:70px 1fr}#discList .tm{display:block;margin:0}#discList .rx small{display:none}#discList .dk{display:none}}
