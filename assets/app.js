@@ -570,12 +570,25 @@
     // 커버리지 상대주가
     const rel = d.rel || []; let gi = +(($("#relSeg button.on") || {}).dataset || {}).v || 0, relMode = "rel";
     const relEl = $("#relChart");
-    const drawRel = () => { const g = rel[gi]; if (!g || !relEl._chart) return;
+    // 장중 주가(live.json)를 오늘 날짜 점으로 붙임: 종가 = 실시간가, 상대값 = 직전 상대값 × (실시간가 / 직전 종가)
+    const withLive = g => { const L = window.__live; if (!L || !L.at) return g;
+      const day = L.at.slice(0, 10), n = g.dates.length, last = g.dates[n - 1]; if (day < last) return g;
+      const add = day > last, k0 = add ? n - 1 : n - 2; if (k0 < 0) return g;
+      const series = g.series.map(s => { let k = k0; while (k >= 0 && (s.abs[k] == null || (s.rel && s.rel[k] == null))) k--;   // 직전 거래일 (휴장일 빈칸 건너뜀)
+        const q = s.key && L.q[s.key]; const a0 = k >= 0 ? s.abs[k] : null, r0 = s.rel && k >= 0 ? s.rel[k] : null;
+        const ap = q && q.p && a0 ? q.p : (add ? s.abs[n - 1] : s.abs[n - 1]);
+        const rp = q && q.p && a0 && r0 != null ? +(r0 * q.p / a0).toFixed(2) : (s.rel ? s.rel[n - 1] : null);
+        const abs = add ? s.abs.concat([ap]) : s.abs.slice(0, -1).concat([ap]);
+        const relv = s.rel ? (add ? s.rel.concat([rp]) : s.rel.slice(0, -1).concat([rp])) : s.rel;
+        return Object.assign({}, s, { abs, rel: relv }); });
+      return Object.assign({}, g, { dates: add ? g.dates.concat([day]) : g.dates, series }); };
+    const drawRel = () => { const g = withLive(rel[gi]); if (!g || !relEl._chart) return;
       const ss = g.series.map(s => ({ name: s.name, vals: relMode === "rel" ? s.rel : s.abs, dash: s.index, bold: s.index, color: s.index ? "#8e8e93" : undefined, base: relMode === "rel" ? 100 : null }));
       relEl._chart.setOption(lineOption(g.dates, relMode === "rel" ? ss : ss.filter(s => !/(pt)/.test(s.name)), { unit: relMode === "rel" ? `(${g.base})` : "(종가)", zoom: true }), true);
       $("#relNote").textContent = `기준일 ${g.base}. 점선 = 지수.`; };
     if (relEl) lazy(relEl, () => drawRel());
     seg($("#relSeg"), v => { gi = +v; drawRel(); });
+    document.addEventListener("live", () => drawRel());
     seg($("#relMode"), v => { relMode = v; drawRel(); });
     toggleData($("#relData"), $("#relDataBox"), () => { const g = rel[gi]; dataTable($("#relDataBox"), ["날짜", ...g.series.map(s => s.name)], g.dates.map((x, i) => [x, ...g.series.map(s => (relMode === "rel" ? s.rel : s.abs)[i])]).reverse(), "상대주가_" + g.group); });
     // PER·PBR
