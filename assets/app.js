@@ -661,26 +661,29 @@
     if (ppi && pEl) lazy(pEl, c => c.setOption(ppiOpt("vals", "(지수)", "")));
     if (ppi && pyEl) lazy(pyEl, c => c.setOption(ppiOpt("yoy", "YoY(%)", "%")));
     seg($("#ppiSeg"), v => { ppi = ppiGroups[+v] || ppiGroups[0]; drawPpi(); });
-    // 무역
-    const tr = d.trade || {}; let tk = Object.keys(tr)[0], hs = "850423", per = "월간";
-    const tEl = $("#trChart");
-    const curT = () => (tr[tk] || {})[hs + "_" + per];
-    const drawTr = () => { const t = curT(); if (!t || !tEl._chart) return;
-      const named = t.series.filter(s => s.name !== "합계"); const tot = t.series.find(s => s.name === "합계");
-      let s0 = per === "월간" ? Math.max(0, t.dates.length - 60) : Math.max(0, t.dates.length - 20);
-      tEl._chart.setOption(base({ tooltip: Object.assign(base().tooltip, { axisPointer: { type: "shadow" }, valueFormatter: v => v == null ? "-" : fmt(v, 1) }),
-        legend: Object.assign(base().legend, { type: "scroll", right: 0, data: named.map(s => s.name).concat((t.shares || []).map(sh => sh.name + " 비중(R)")) }),
-        xAxis: xCat(t.dates.slice(s0)), yAxis: [yVal({ name: "(" + t.unit + ")" }), yVal({ name: "(%)", show: !!(t.shares && t.shares.length), splitLine: { show: false } })],
-        series: [...named.map((s, k) => ({ name: s.name, type: "bar", stack: "a", data: s.vals.slice(s0), barMaxWidth: 24, itemStyle: { color: s.name === "기타" ? "#d2d2d7" : PAL[k % PAL.length] }, emphasis: { focus: "series" } })),
-          ...(t.shares || []).map((sh, k) => ({ name: sh.name + " 비중(R)", type: "line", yAxisIndex: 1, data: sh.vals.slice(s0), showSymbol: true, showAllSymbol: true, symbol: "circle", symbolSize: 5, smooth: 0.2,
-            lineStyle: { width: 2.5, color: ["#1d1d1f", "#ff375f"][k] }, itemStyle: { color: "#fff", borderColor: ["#1d1d1f", "#ff375f"][k], borderWidth: 2 }, z: 10 })),
-          tot ? { name: "합계", type: "line", data: tot.vals.slice(s0), symbol: "none", lineStyle: { opacity: 0 }, itemStyle: { opacity: 0 }, label: { show: per === "연간", position: "top", fontSize: 10, formatter: p => fmt(p.value, 0) } } : null].filter(Boolean) }), true);
-      $("#trNote").textContent = `${t.hs_name} · ${t.flow}금액`; };
-    if (tEl) lazy(tEl, () => drawTr());
-    seg($("#trSeg"), v => { tk = v; drawTr(); });
-    seg($("#trHs"), v => { hs = v; drawTr(); });
-    seg($("#trPer"), v => { per = v; drawTr(); });
-    toggleData($("#trData"), $("#trDataBox"), () => { const t = curT(); dataTable($("#trDataBox"), ["기간", ...t.series.map(s => s.name)], t.dates.map((x, i) => [x, ...t.series.map(s => s.vals[i])]).reverse(), tk + "_" + hs); });
+    // 무역: 변압기 / 배전반 (2026-10-13) 같은 그림 — 국가별 쌓은 막대 + 비중 선(R)
+    const tradeChart = (tr, ids, hs0) => {
+      let tk = Object.keys(tr).find(k => tr[k]) || Object.keys(tr)[0], hs = hs0, per = "월간";
+      const tEl = $(ids.chart); if (!tEl) return;
+      const curT = () => (tr[tk] || {})[hs + "_" + per];
+      const drawTr = () => { const t = curT(); if (!tEl._chart) return; if (!t) { tEl._chart.clear(); $(ids.note).textContent = "자료 준비 중"; return; }
+        const named = t.series.filter(s => s.name !== "합계"); const tot = t.series.find(s => s.name === "합계");
+        let s0 = per === "월간" ? Math.max(0, t.dates.length - 60) : Math.max(0, t.dates.length - 20);
+        tEl._chart.setOption(base({ tooltip: Object.assign(base().tooltip, { axisPointer: { type: "shadow" }, valueFormatter: v => v == null ? "-" : fmt(v, 1) }),
+          legend: Object.assign(base().legend, { type: "scroll", right: 0, data: named.map(s => s.name).concat((t.shares || []).map(sh => sh.name + " 비중(R)")) }),
+          xAxis: xCat(t.dates.slice(s0)), yAxis: [yVal({ name: "(" + t.unit + ")" }), yVal({ name: "(%)", show: !!(t.shares && t.shares.length), splitLine: { show: false } })],
+          series: [...named.map((s, k) => ({ name: s.name, type: "bar", stack: "a", data: s.vals.slice(s0), barMaxWidth: 24, itemStyle: { color: s.name === "기타" ? "#d2d2d7" : PAL[k % PAL.length] }, emphasis: { focus: "series" } })),
+            ...(t.shares || []).map((sh, k) => ({ name: sh.name + " 비중(R)", type: "line", yAxisIndex: 1, data: sh.vals.slice(s0), showSymbol: true, showAllSymbol: true, symbol: "circle", symbolSize: 5, smooth: 0.2,
+              lineStyle: { width: 2.5, color: ["#1d1d1f", "#ff375f"][k] }, itemStyle: { color: "#fff", borderColor: ["#1d1d1f", "#ff375f"][k], borderWidth: 2 }, z: 10 })),
+            tot ? { name: "합계", type: "line", data: tot.vals.slice(s0), symbol: "none", lineStyle: { opacity: 0 }, itemStyle: { opacity: 0 }, label: { show: per === "연간", position: "top", fontSize: 10, formatter: p => fmt(p.value, 0) } } : null].filter(Boolean) }), true);
+        $(ids.note).textContent = `${t.hs_name} · ${t.flow}금액`; };
+      lazy(tEl, () => drawTr());
+      seg($(ids.src), v => { tk = v; drawTr(); });
+      seg($(ids.hs), v => { hs = v; drawTr(); });
+      seg($(ids.per), v => { per = v; drawTr(); });
+    };
+    tradeChart(d.trade || {}, { chart: "#trChart", note: "#trNote", src: "#trSeg", hs: "#trHs", per: "#trPer" }, "850423");
+    tradeChart(d.sw_trade || {}, { chart: "#swChart", note: "#swNote", src: "#swSeg", hs: "#swHs", per: "#swPer" }, "853710");
     lightbox();
   };
   P.reports = d => {   // 필터: 전체/기업/산업/섹터 + 주소 #c=<기업> 로 기업 하나만 (상단 리포트 드롭다운)
