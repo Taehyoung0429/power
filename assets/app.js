@@ -755,6 +755,11 @@
         if (nt) nt.textContent = `금액 ÷ 무게. ${PXNOTE[src] || ""}`;
         const o = lineOption(x.dates.slice(s0), x.series.map((s, k) => ({ name: s.name, vals: s.vals.slice(s0), color: ["#1d1d1f", "#ff375f"][k] })), { unit: `(${x.unit})`, endLabel: true });
         o.series.forEach(sr => { sr.connectNulls = true; if (sr.endLabel) sr.endLabel.formatter = p => p.value == null ? "" : fmt(p.value, 1); });
+        // Y축 최대값은 글로벌 선 기준 (사용자 지정 2026-10-13): 미국향·한국산은 물량이 적은 달에 튀어서, 튀는 값은 축 밖으로 잘림
+        const gv = x.series[0].vals.slice(s0).filter(v => v != null);
+        if (gv.length && x.series.length > 1) { const m = Math.max(...gv) * 1.2, st = niceStep(m, 5);
+          (Array.isArray(o.yAxis) ? o.yAxis[0] : o.yAxis).max = Math.ceil(m / st - 1e-9) * st; }
+        o.grid.left = 26;   // 축 제목 (US$/kg) 이 잘리지 않게
         pEl._chart.setOption(o, true); };
       if (pEl) lazy(pEl, () => drawPx());
       const curT = () => (tr[tk] || {})[hs + "_" + per];
