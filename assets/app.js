@@ -705,6 +705,16 @@
     seg($("#frSeg"), v => { fi = +v; drawFr(); });
     seg($("#frRange"), v => { frg = v; drawFr(); });
     toggleData($("#frData"), $("#frDataBox"), () => { const g = fr[fi]; dataTable($("#frDataBox"), ["날짜", ...g.series.map(s => s.name)], g.dates.map((x, i) => [x, ...g.series.map(s => s.vals[i])]).reverse(), "외국인보유율"); });
+    // 수주 합산 (2026-10-14): 5개사 신규수주 / 수주잔고 누적 막대, 툴팁 맨 아래 합계
+    const os = d.orders_sum;
+    if (os) [["#ordSum", os.orders], ["#blSum", os.backlog]].forEach(([id, ser]) => { const el = $(id); if (!el || !ser.length) return;
+      const cols = ["#1d1d1f", "#0071e3", "#ff9f0a", "#34c759", "#af52de"], names = ["효성중공업 (중공업)", "HD현대일렉트릭", "LS일렉트릭", "산일전기", "일진전기 (중전기)"];
+      lazy(el, c => c.setOption(base({ legend: Object.assign(base().legend, { data: ser.map(s => s.name) }), noAlign: true,
+        tooltip: Object.assign(base().tooltip, { axisPointer: { type: "shadow" }, formatter: ps => { const i = ps[0].dataIndex, tot = ser.reduce((t, s) => t + (s.vals[i] || 0), 0);
+          return `<b>${os.labels[i]}</b><br>` + ps.map(p => `${p.marker} ${p.seriesName} <b style="float:right;margin-left:16px">${p.value == null ? "-" : fmt(p.value, 0)}</b>`).join("<br>")
+            + `<div style="border-top:1px solid #e5e5ea;margin-top:4px;padding-top:4px">합계 <b style="float:right;margin-left:16px">${fmt(tot, 0)}</b></div>`; } }),
+        xAxis: xCat(os.labels), yAxis: yVal({ name: "(십억원)", min: 0 }),
+        series: ser.map(s => ({ name: s.name, type: "bar", stack: "s", barMaxWidth: 26, data: s.vals, itemStyle: { color: cols[Math.max(0, names.indexOf(s.name)) % 5] } })) }), true)); });
     // 섹터 수급 합산 (기업 수급 차트와 같은 모양: 일별 막대 + 누적 선, 억원)
     const sf = d.sflow || []; let si = 0, srg = "3m";   // 첫 그룹(메뉴 순서대로)부터
     const sfEl = $("#sfChart");
