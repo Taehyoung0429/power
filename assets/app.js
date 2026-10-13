@@ -491,6 +491,7 @@
       (d.report_charts || []).forEach((ch, i) => { const el = $("#rch" + i); if (!el) return;
         lazy(el, c => { const share = ch.type === "share";
           c.setOption(base({ legend: Object.assign(base().legend, { show: ch.series.length > 1, data: ch.series.map(s => s.name) }),
+            grid: Object.assign(base().grid, ch.series.length > 1 ? {} : { top: 36 }),   // 범례 없는 단일 계열: 범례 자리만큼 위 여백 줄임
             tooltip: Object.assign(base().tooltip, { axisPointer: { type: "shadow" }, valueFormatter: v => v == null ? "-" : fmt(v, 1) + (share ? "%" : "") }),
             xAxis: xCat(ch.labels), yAxis: yVal({ name: ch.unit, max: share ? 100 : null }),
             series: ch.series.map((s, k) => ({ name: s.name, type: "bar", stack: share ? "s" : undefined, barMaxWidth: 34, data: s.vals,
