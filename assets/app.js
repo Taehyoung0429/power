@@ -741,9 +741,22 @@
     seg($("#ppiSeg"), v => { ppi = ppiGroups[+v] || ppiGroups[0]; drawPpi(); });
     if (ppi) { const t = $("#ppiTitle"), t2 = $("#ppiYoyTitle"); if (t) t.textContent = ppi.title || "미국 " + ppi.name + " PPI"; if (t2) t2.textContent = ppi.title ? "전년 대비" : "PPI 전년 대비"; }   // 첫 화면 제목
     // 무역: 변압기 / 배전반 (2026-10-13) 같은 그림 — 국가별 쌓은 막대 + 비중 선(R)
+    const PXSRC = { us_transformer_trade: "us", eu_transformer_trade: "eu", kr_transformer_trade: "kr", cn_transformer_trade: "cn" };
+    const PXNOTE = { us: "해상·항공 운송분 기준 (육로 수입은 무게 자료 없음)", eu: "역외 수입 · 유로 기준", kr: "", cn: "무게(제2수량 kg) 기준" };
     const tradeChart = (tr, ids, hs0, tk0) => {
       let tk = tk0 && tr[tk0] ? tk0 : (Object.keys(tr).find(k => tr[k]) || Object.keys(tr)[0]), hs = hs0, per = "월간";
       const tEl = $(ids.chart); if (!tEl) return;
+      const pEl = $(ids.chart.replace("Chart", "Px"));
+      const drawPx = () => { if (!pEl || !pEl._chart) return; const src = PXSRC[tk] || tk, P = ((d.trade_px || {})[src] || {})[hs], x = P && P[per];
+        const tt = $(ids.chart.replace("Chart", "PxTitle")), nt = $(ids.chart.replace("Chart", "PxNote"));
+        if (!x || !x.series.some(s => s.vals.some(v => v != null))) { pEl._chart.clear(); if (tt) tt.textContent = "단가"; if (nt) nt.textContent = "단가 자료 준비 중"; return; }
+        const s0 = per === "월간" ? Math.max(0, x.dates.length - 60) : 0;
+        if (tt) tt.textContent = `단가 (${x.unit}) · ${x.series.map(s => s.name).join(" vs ")}`;
+        if (nt) nt.textContent = `금액 ÷ 무게. ${PXNOTE[src] || ""}`;
+        const o = lineOption(x.dates.slice(s0), x.series.map((s, k) => ({ name: s.name, vals: s.vals.slice(s0), color: ["#1d1d1f", "#ff375f"][k] })), { unit: `(${x.unit})`, endLabel: true });
+        o.series.forEach(sr => { sr.connectNulls = true; if (sr.endLabel) sr.endLabel.formatter = p => p.value == null ? "" : fmt(p.value, 1); });
+        pEl._chart.setOption(o, true); };
+      if (pEl) lazy(pEl, () => drawPx());
       const curT = () => (tr[tk] || {})[hs + "_" + per];
       const drawTr = () => { const t = curT(); if (!tEl._chart) return; if (!t) { tEl._chart.clear(); $(ids.note).textContent = tr[tk] ? "이 자료(나라 통계)에는 해당 품목의 세분 코드가 없습니다" : "자료 준비 중"; return; }
         const named = t.series.filter(s => s.name !== "합계"); const tot = t.series.find(s => s.name === "합계");
@@ -755,7 +768,7 @@
             ...(t.shares || []).map((sh, k) => ({ name: sh.name + " 비중(R)", type: "line", yAxisIndex: 1, data: sh.vals.slice(s0), showSymbol: true, showAllSymbol: true, symbol: "circle", symbolSize: 5, smooth: 0.2,
               lineStyle: { width: 2.5, color: ["#1d1d1f", "#ff375f"][k] }, itemStyle: { color: "#fff", borderColor: ["#1d1d1f", "#ff375f"][k], borderWidth: 2 }, z: 10 })),
             tot ? { name: "합계", type: "line", data: tot.vals.slice(s0), symbol: "none", lineStyle: { opacity: 0 }, itemStyle: { opacity: 0 }, label: { show: per === "연간", position: "top", fontSize: 10, formatter: p => fmt(p.value, 0) } } : null].filter(Boolean) }), true);
-        $(ids.note).textContent = `${t.hs_name} · ${t.flow}금액`; };
+        $(ids.note).textContent = `${t.hs_name} · ${t.flow}금액`; drawPx(); };
       lazy(tEl, () => drawTr());
       seg($(ids.src), v => { tk = v; drawTr(); });
       seg($(ids.hs), v => { hs = v; drawTr(); });
