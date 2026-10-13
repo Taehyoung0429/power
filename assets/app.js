@@ -144,6 +144,7 @@
     return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
   }
   function alignZero(o) {
+    if (o.noAlign) { delete o.noAlign; return o; }   // 축 범위를 직접 정한 차트는 그대로
     if (!Array.isArray(o.yAxis) || o.yAxis.length < 2 || o.yAxis[1].show === false) return o;
     const ext = [[0, 0], [0, 0]];
     const stacks = {};
@@ -508,29 +509,37 @@
                     label: { show: true, position: "bottom", distance: 6, color: "#c25e00", fontSize: 11, fontWeight: 700, backgroundColor: "rgba(255,255,255,.9)", padding: [2, 4], borderRadius: 4, formatter: () => fmt(b.now, 1) + "X" } }] }; })() }] }), true); }); });
       // 보고서 그림을 옮긴 차트 (data/report_charts.json): 비중 = 100% 누적 막대, 추이 = 막대
       // 금액 차트(누적·막대+선)끼리 왼쪽 Y축 최대값을 같게 (사용자 지정 2026-10-13): 누적은 기간별 합, 막대+선은 막대 값
-      // 막대+선 차트의 왼쪽 축은 오른쪽 축과 눈금을 맞추느라(alignZero) 최대값이 정해짐 → 같은 계산으로 구해 누적 차트에도 적용
-      const leftMax = (() => { let m = 0, combo = null; const mx = a => Math.max(0, ...a.filter(v => v != null));
+      // 금액 차트(누적·막대+선)끼리 왼쪽 Y축 최대값을 같게: 누적은 기간별 합, 막대+선은 막대 값 중 최대를 보기 좋게 올림 (사용자 지정 2026-10-13)
+      const niceCeil = x => { const p = Math.pow(10, Math.floor(Math.log10(x))); return [1, 2, 2.5, 5, 10].map(k => k * p).find(v => v >= x - 1e-9); };
+      const leftStep = m => niceStep(m, 4);
+      const leftMax = (() => { let m = 0; const mx = a => Math.max(0, ...a.filter(v => v != null));
         (d.report_charts || []).forEach(ch => {
           if (ch.type === "stack") ch.labels.forEach((_, i) => { m = Math.max(m, ch.series.reduce((t, s) => t + (s.vals[i] || 0), 0)); });
-          if (ch.type === "combo") { const L = mx(ch.series[0].vals), R = mx(ch.series.slice(1).flatMap(s => s.vals));
-            const sL = niceStep(L || 1, 5), sR = niceStep(R || 1, 5); combo = Math.max(1, Math.ceil(L / sL - 1e-9), Math.ceil(R / sR - 1e-9)) * sL; } });
-        if (combo && combo >= m) return combo;
-        if (!m) return null; const st = niceStep(m, 5); return Math.ceil(m / st - 1e-9) * st; })();
+          if (ch.type === "combo") m = Math.max(m, mx(ch.series[0].vals)); });
+        if (!m) return null; const st = leftStep(m); return Math.ceil(m / st - 1e-9) * st; })();
       (d.report_charts || []).forEach((ch, i) => { const el = $("#rch" + i); if (!el) return;
         if (!ch.series.some(s => s.vals.some(v => v != null))) { el.innerHTML = '<p class="note" style="padding:40px 0;text-align:center">값 입력 대기 중</p>'; return; }
         if (ch.type === "stack" || ch.type === "combo") {   // 누적(금액 쌓은 막대) / 막대+선(첫 계열 막대, 나머지 선·오른쪽 축)
           lazy(el, c => { const combo = ch.type === "combo", cols = ["#636366", "#aeaeb2", "#d1d1d6", "#f8c98a", "#0071e3", "#ff9f0a"];
-            c.setOption(base({ legend: Object.assign(base().legend, { data: ch.series.map(s => s.name) }),
+            c.setOption(base({ legend: Object.assign(base().legend, { data: ch.series.map(s => s.name).concat(combo ? [] : [ch.series[0].name + " 비중(R)"]) }),
               tooltip: Object.assign(base().tooltip, { axisPointer: { type: "shadow" }, valueFormatter: v => v == null ? "-" : fmt(v, 0) },
                 combo ? {} : { formatter: ps => { const i = ps[0].dataIndex, tot = ch.series.reduce((t, s) => t + (s.vals[i] || 0), 0);   // 누적: 맨 아래 합계
-                  return `<b>${ch.labels[i]}</b><br>` + ps.map(p => `${p.marker} ${p.seriesName} <b style="float:right;margin-left:16px">${p.value == null ? "-" : fmt(p.value, 0)}</b>`).join("<br>")
+                  return `<b>${ch.labels[i]}</b><br>` + ps.map(p => `${p.marker} ${p.seriesName} <b style="float:right;margin-left:16px">${p.value == null ? "-" : fmt(p.value, /비중/.test(p.seriesName) ? 1 : 0) + (/비중/.test(p.seriesName) ? "%" : "")}</b>`).join("<br>")
                     + `<div style="border-top:1px solid #e5e5ea;margin-top:4px;padding-top:4px">합계 <b style="float:right;margin-left:16px">${fmt(tot, 0)}</b></div>`; } }),
-              xAxis: xCat(ch.labels), yAxis: combo ? [yVal({ name: ch.unit, max: leftMax }), yVal({ name: ch.unit, splitLine: { show: false } })] : yVal({ name: ch.unit, max: leftMax }),
-              series: ch.series.map((s, k) => combo && k > 0
+              noAlign: true,
+              xAxis: xCat(ch.labels), yAxis: (() => { if (!leftMax) return combo ? [yVal({ name: ch.unit }), yVal({ name: ch.unit, splitLine: { show: false } })] : yVal({ name: ch.unit });
+                const stL = leftStep(leftMax), n = Math.round(leftMax / stL), L = yVal({ name: ch.unit, min: 0, max: leftMax, interval: stL });
+                if (combo) { const R = Math.max(0, ...ch.series.slice(1).flatMap(s => s.vals).filter(v => v != null)), stR = niceCeil(R / n || 1);
+                  return [L, yVal({ name: ch.unit, min: 0, max: stR * n, interval: stR, splitLine: { show: false } })]; }
+                return [L, yVal({ name: "(%)", min: 0, max: 100, interval: 100 / n, splitLine: { show: false } })]; })(),
+              series: [...ch.series.map((s, k) => combo && k > 0
                 ? { name: s.name, type: "line", yAxisIndex: 1, data: s.vals, symbol: "circle", symbolSize: 7, lineStyle: { width: 2.5, color: "#ff9f0a" }, itemStyle: { color: "#fff", borderColor: "#ff9f0a", borderWidth: 2 },
                     label: { show: ch.labels.length <= 12, position: "top", fontSize: 9.5, color: "#c25e00", formatter: p => p.value == null ? "" : fmt(p.value, 0) } }
                 : { name: s.name, type: "bar", stack: combo ? undefined : "s", barMaxWidth: 30, data: s.vals, itemStyle: { color: combo ? "#0071e3" : cols[k % cols.length] },
-                    label: { show: combo && ch.labels.length <= 12, position: "top", fontSize: 9.5, color: "#1d1d1f", formatter: p => p.value == null ? "" : fmt(p.value, 0) } }) }), true); });
+                    label: { show: combo && ch.labels.length <= 12, position: "top", fontSize: 9.5, color: "#1d1d1f", formatter: p => p.value == null ? "" : fmt(p.value, 0) } }),
+                ...(!combo && ch.series[0] ? [{ name: ch.series[0].name + " 비중(R)", type: "line", yAxisIndex: 1, symbol: "circle", symbolSize: 6, z: 10,   // 누적: 첫 계열(북미) 비중 % (보조축)
+                  data: ch.labels.map((_, i) => { const t = ch.series.reduce((a, s) => a + (s.vals[i] || 0), 0); return t ? +(100 * (ch.series[0].vals[i] || 0) / t).toFixed(1) : null; }),
+                  lineStyle: { width: 2.5, color: "#ff375f" }, itemStyle: { color: "#fff", borderColor: "#ff375f", borderWidth: 2 } }] : [])] }), true); });
           return; }
         lazy(el, c => { const share = ch.type === "share";
           c.setOption(base({ legend: Object.assign(base().legend, { show: ch.series.length > 1, data: ch.series.map(s => s.name) }),
