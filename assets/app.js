@@ -129,9 +129,13 @@
       // y축 제목은 위치를 맞추기 전까지 숨김 → 처음부터 숫자 열 위에 나타남 (움직이며 재정렬되는 모습 없앰, 2026-10-12)
       const hideNames = o => { const ys = o.yAxis == null ? [] : Array.isArray(o.yAxis) ? o.yAxis : [o.yAxis];
         ys.forEach(ax => { if (ax && ax.name) ax.nameTextStyle = Object.assign({}, ax.nameTextStyle, { opacity: 0 }); }); return o; };
-      c.setOption = (o, ...a) => orig(o && o.series ? hideNames(alignZero(mobileLegend(o, el))) : o, ...a);   // 좁은 화면: 범례를 아래로, 줄바꿈
+      c.setOption = (o, ...a) => { if (o && o.series) c._alignPending = true; return orig(o && o.series ? hideNames(alignZero(mobileLegend(o, el))) : o, ...a); };   // 좁은 화면: 범례를 아래로, 줄바꿈
       if ("ResizeObserver" in window) new ResizeObserver(() => c.resize()).observe(el);  // 패널 폭이 바뀌면 다시 맞춤
-      c.on("rendered", () => alignAxisNames(c)); c.on("finished", () => alignAxisNames(c)); build(c); };
+      // Y축 제목 맞추기는 새 그림을 그린 직후 한 번만 (매 프레임 다시 맞추면 그리기가 끝나지 않고 계속 다시 그려져 느려짐, 2026-10-14 수정)
+      // 그리기 도중(rendered 안)에 setOption 을 부를 수 없어 바로 다음 순간(setTimeout 0)에 맞춤
+      c.on("rendered", () => { if (!c._alignPending || c._alignQueued) return; c._alignQueued = true;
+        setTimeout(() => { c._alignQueued = false; try { alignAxisNames(c); c._alignPending = false; } catch (e) { /* 다음 그리기 때 다시 */ } }, 0); });
+      build(c); };
     if (!("IntersectionObserver" in window)) return go();
     const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { io.disconnect(); go(); } }), { rootMargin: "120px" });
     io.observe(el);
