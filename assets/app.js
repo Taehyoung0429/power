@@ -744,19 +744,24 @@
     const PXSRC = { us_transformer_trade: "us", eu_transformer_trade: "eu", kr_transformer_trade: "kr", cn_transformer_trade: "cn" };
     const PXNOTE = { us: "해상·항공 운송분 기준 (육로 수입은 무게 자료 없음)", eu: "역외 수입 · 유로 기준", kr: "", cn: "무게(제2수량 kg) 기준" };
     const tradeChart = (tr, ids, hs0, tk0) => {
-      let tk = tk0 && tr[tk0] ? tk0 : (Object.keys(tr).find(k => tr[k]) || Object.keys(tr)[0]), hs = hs0, per = "월간";
+      let tk = tk0 && tr[tk0] ? tk0 : (Object.keys(tr).find(k => tr[k]) || Object.keys(tr)[0]), hs = hs0, per = "월간", rng = 10;   // 기간: 전체(0) / 10년 / 5년
+      let shownDates = [];   // 막대 그래프에 보이는 기간 → 단가 그래프도 같은 축
       const tEl = $(ids.chart); if (!tEl) return;
       const pEl = $(ids.chart.replace("Chart", "Px"));
       const drawPx = () => { if (!pEl || !pEl._chart) return; const src = PXSRC[tk] || tk, P = ((d.trade_px || {})[src] || {})[hs], x = P && P[per];
         const tt = $(ids.chart.replace("Chart", "PxTitle")), nt = $(ids.chart.replace("Chart", "PxNote"));
         if (!x || !x.series.some(s => s.vals.some(v => v != null))) { pEl._chart.clear(); if (tt) tt.textContent = "단가"; if (nt) nt.textContent = "단가 자료 준비 중"; return; }
+        // 막대 그래프와 같은 날짜축 (연간 진행 중인 해는 'YYYY (1~N월)' 표기가 달라도 연도로 맞춤)
+        const key = v => per === "연간" ? String(v).slice(0, 4) : v;
+        const pos = new Map(x.dates.map((v, i) => [key(v), i]));
+        const X = shownDates.length ? { dates: shownDates, series: x.series.map(s => ({ name: s.name, vals: shownDates.map(dd => { const i = pos.get(key(dd)); return i == null ? null : s.vals[i]; }) })) } : x;
         const s0 = 0;
         if (tt) tt.textContent = `단가 (${x.unit}) · ${x.series.map(s => s.name).join(" vs ")}`;
         if (nt) nt.textContent = `금액 ÷ 무게. ${PXNOTE[src] || ""}`;
-        const o = lineOption(x.dates.slice(s0), x.series.map((s, k) => ({ name: s.name, vals: s.vals.slice(s0), color: ["#1d1d1f", "#ff375f"][k] })), { unit: `(${x.unit})`, endLabel: true });
+        const o = lineOption(X.dates, X.series.map((s, k) => ({ name: s.name, vals: s.vals, color: ["#1d1d1f", "#ff375f"][k] })), { unit: `(${x.unit})`, endLabel: true });
         o.series.forEach(sr => { sr.connectNulls = true; if (sr.endLabel) sr.endLabel.formatter = p => p.value == null ? "" : fmt(p.value, 1); });
         // Y축 최대값은 글로벌 선 기준 (사용자 지정 2026-10-13): 미국향·한국산은 물량이 적은 달에 튀어서, 튀는 값은 축 밖으로 잘림
-        const gv = x.series[0].vals.slice(s0).filter(v => v != null);
+        const gv = X.series[0].vals.filter(v => v != null);
         if (gv.length && x.series.length > 1) { const m = Math.max(...gv) * 1.2, st = niceStep(m, 5);
           (Array.isArray(o.yAxis) ? o.yAxis[0] : o.yAxis).max = Math.ceil(m / st - 1e-9) * st; }
         o.grid.left = 26;   // 축 제목 (US$/kg) 이 잘리지 않게
@@ -765,7 +770,8 @@
       const curT = () => (tr[tk] || {})[hs + "_" + per];
       const drawTr = () => { const t = curT(); if (!tEl._chart) return; if (!t) { tEl._chart.clear(); $(ids.note).textContent = tr[tk] ? "이 자료(나라 통계)에는 해당 품목의 세분 코드가 없습니다" : "자료 준비 중"; return; }
         const named = t.series.filter(s => s.name !== "합계"); const tot = t.series.find(s => s.name === "합계");
-        let s0 = 0;   // 2026-10-13: 최근 60개월만 → 있는 기간 전부 (사용자 요청)
+        let s0 = rng ? Math.max(0, t.dates.length - (per === "월간" ? rng * 12 : rng)) : 0;   // 기간 버튼 (2026-10-13)
+        shownDates = t.dates.slice(s0);
         tEl._chart.setOption(base({ tooltip: Object.assign(base().tooltip, { axisPointer: { type: "shadow" }, valueFormatter: v => v == null ? "-" : fmt(v, 1) }),
           legend: Object.assign(base().legend, { type: "scroll", right: 0, data: named.map(s => s.name).concat((t.shares || []).map(sh => sh.name + " 비중(R)")) }),
           xAxis: xCat(t.dates.slice(s0)), yAxis: [yVal({ name: "(" + t.unit + ")" }), yVal({ name: "(%)", show: !!(t.shares && t.shares.length), splitLine: { show: false } })],
@@ -778,6 +784,7 @@
       seg($(ids.src), v => { tk = v; drawTr(); });
       seg($(ids.hs), v => { hs = v; drawTr(); });
       seg($(ids.per), v => { per = v; drawTr(); });
+      seg($(ids.per.replace("Per", "Rng")), v => { rng = +v; drawTr(); });
     };
     tradeChart(d.trade || {}, { chart: "#trChart", note: "#trNote", src: "#trSeg", hs: "#trHs", per: "#trPer" }, "850423");
     tradeChart(d.sw_trade || {}, { chart: "#swChart", note: "#swNote", src: "#swSeg", hs: "#swHs", per: "#swPer" }, "853710");
