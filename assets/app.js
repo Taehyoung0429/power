@@ -750,7 +750,7 @@
       const drawPx = () => { if (!pEl || !pEl._chart) return; const src = PXSRC[tk] || tk, P = ((d.trade_px || {})[src] || {})[hs], x = P && P[per];
         const tt = $(ids.chart.replace("Chart", "PxTitle")), nt = $(ids.chart.replace("Chart", "PxNote"));
         if (!x || !x.series.some(s => s.vals.some(v => v != null))) { pEl._chart.clear(); if (tt) tt.textContent = "단가"; if (nt) nt.textContent = "단가 자료 준비 중"; return; }
-        const s0 = per === "월간" ? Math.max(0, x.dates.length - 60) : 0;
+        const s0 = 0;
         if (tt) tt.textContent = `단가 (${x.unit}) · ${x.series.map(s => s.name).join(" vs ")}`;
         if (nt) nt.textContent = `금액 ÷ 무게. ${PXNOTE[src] || ""}`;
         const o = lineOption(x.dates.slice(s0), x.series.map((s, k) => ({ name: s.name, vals: s.vals.slice(s0), color: ["#1d1d1f", "#ff375f"][k] })), { unit: `(${x.unit})`, endLabel: true });
@@ -765,12 +765,12 @@
       const curT = () => (tr[tk] || {})[hs + "_" + per];
       const drawTr = () => { const t = curT(); if (!tEl._chart) return; if (!t) { tEl._chart.clear(); $(ids.note).textContent = tr[tk] ? "이 자료(나라 통계)에는 해당 품목의 세분 코드가 없습니다" : "자료 준비 중"; return; }
         const named = t.series.filter(s => s.name !== "합계"); const tot = t.series.find(s => s.name === "합계");
-        let s0 = per === "월간" ? Math.max(0, t.dates.length - 60) : Math.max(0, t.dates.length - 20);
+        let s0 = 0;   // 2026-10-13: 최근 60개월만 → 있는 기간 전부 (사용자 요청)
         tEl._chart.setOption(base({ tooltip: Object.assign(base().tooltip, { axisPointer: { type: "shadow" }, valueFormatter: v => v == null ? "-" : fmt(v, 1) }),
           legend: Object.assign(base().legend, { type: "scroll", right: 0, data: named.map(s => s.name).concat((t.shares || []).map(sh => sh.name + " 비중(R)")) }),
           xAxis: xCat(t.dates.slice(s0)), yAxis: [yVal({ name: "(" + t.unit + ")" }), yVal({ name: "(%)", show: !!(t.shares && t.shares.length), splitLine: { show: false } })],
           series: [...named.map((s, k) => ({ name: s.name, type: "bar", stack: "a", data: s.vals.slice(s0), barMaxWidth: 24, itemStyle: { color: s.name === "기타" ? "#d2d2d7" : PAL[k % PAL.length] }, emphasis: { focus: "series" } })),
-            ...(t.shares || []).map((sh, k) => ({ name: sh.name + " 비중(R)", type: "line", yAxisIndex: 1, data: sh.vals.slice(s0), showSymbol: true, showAllSymbol: true, symbol: "circle", symbolSize: 5, smooth: 0.2,
+            ...(t.shares || []).map((sh, k) => ({ name: sh.name + " 비중(R)", type: "line", yAxisIndex: 1, data: sh.vals.slice(s0), showSymbol: t.dates.length - s0 <= 120 /* 기간이 길면 표식 없이 선만 */, showAllSymbol: true, symbol: "circle", symbolSize: 5, smooth: 0.2,
               lineStyle: { width: 2.5, color: ["#1d1d1f", "#ff375f"][k] }, itemStyle: { color: "#fff", borderColor: ["#1d1d1f", "#ff375f"][k], borderWidth: 2 }, z: 10 })),
             tot ? { name: "합계", type: "line", data: tot.vals.slice(s0), symbol: "none", lineStyle: { opacity: 0 }, itemStyle: { opacity: 0 }, label: { show: per === "연간", position: "top", fontSize: 10, formatter: p => fmt(p.value, 0) } } : null].filter(Boolean) }), true);
         $(ids.note).textContent = `${t.hs_name} · ${t.flow}금액`; drawPx(); };
