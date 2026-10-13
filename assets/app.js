@@ -680,16 +680,17 @@
         sr.connectNulls = mx < 3; });
       o.series.forEach((sr, k) => { const vals = ppi.series[k][key], i = lastIdx(vals); if (i < 0) return;
         const up = lasts[k] === top;
-        sr.markPoint = { silent: true, data: [{ coord: [i, vals[i]], value: vals[i], symbol: "circle", symbolSize: 9,
+        sr.markPoint = { silent: true, z: 20, animation: false, data: [{ coord: [i, vals[i]], value: vals[i], symbol: "circle", symbolSize: 9,
           itemStyle: { color: "#fff", borderColor: PAL[k], borderWidth: 2.5 },
           label: { show: true, position: up ? "top" : "bottom", distance: 6, color: PAL[k], fontSize: 11, fontWeight: 600,
+                   backgroundColor: "rgba(255,255,255,.9)", padding: [1, 3], borderRadius: 3,
                    formatter: () => key === "yoy" ? fmt(vals[i], 1) + "%" : fmt(vals[i], 0) } }] };
         if (key === "yoy" && !k) sr.markLine = { silent: true, symbol: "none", data: [{ yAxis: 0 }], lineStyle: { color: "#c7c7cc" }, label: { show: false } }; });
       // 두 차트 x축 눈금 통일: 3년마다 1월에만 표시
      const y0 = +String(ppi.dates[0]).slice(0, 4);
      Object.assign(o.xAxis.axisLabel, { hideOverlap: false, interval: (i, v) => /-01$/.test(v) && (+v.slice(0, 4) - y0) % 3 === 0 });
      o.xAxis.axisTick = { show: false };
-     o.grid.right = key === "yoy" ? 30 : 22; return o; };   // YoY 라벨(예: 13.3%)이 오른쪽에서 잘리지 않게
+     o.grid.right = key === "yoy" ? 30 : 22; if (key === "yoy") o.grid.left = 18; return o; };   // 왼쪽: Y축 제목 'YoY(%)' 이 숫자 열(예: 15)보다 넓어 잘리지 않게   // YoY 라벨(예: 13.3%)이 오른쪽에서 잘리지 않게
     const drawPpi = () => { if (!ppi) return; const t = $("#ppiTitle"); if (t) t.textContent = "미국 " + ppi.name + " PPI";
       if (pEl && pEl._chart) pEl._chart.setOption(ppiOpt("vals", "(지수)", ""), true);
       if (pyEl && pyEl._chart) pyEl._chart.setOption(ppiOpt("yoy", "YoY(%)", "%"), true); };
