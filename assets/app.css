@@ -584,3 +584,11 @@ body[data-page=home] .h-news .item .tt{grid-row:2;grid-column:1/-1}
 table.t thead th:first-child{background:#fff;z-index:2}
 table.t td:first-child{z-index:1}
 .chart-card[hidden]{display:none!important}
+/* 수출입 통계 품목·기간·시계열 한 줄 (사용자 선택 2안 + 묶음별 밑줄, 2026-10-14). PC 는 그대로 */
+.ctl-row{display:contents}
+@media (max-width:640px){
+  .ctl-row{display:flex;align-items:flex-end;gap:16px;width:100%}
+  .ctl-row .seg{width:auto!important;flex:0 0 auto;gap:14px!important;overflow:visible!important}
+  .ctl-row .seg:last-child{flex:1 1 auto}
+}
+@media (max-width:380px){.ctl-row{gap:12px}.ctl-row .seg{gap:10px!important}.ctl-row .seg button{font-size:14px!important}}
