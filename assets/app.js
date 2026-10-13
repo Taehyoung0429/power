@@ -757,7 +757,7 @@
         const X = shownDates.length ? { dates: shownDates, series: x.series.map(s => ({ name: s.name, vals: shownDates.map(dd => { const i = pos.get(key(dd)); return i == null ? null : s.vals[i]; }) })) } : x;
         const s0 = 0;
         if (tt) tt.textContent = `단가 (${x.unit}) · ${x.series.map(s => s.name).join(" vs ")}`;
-        if (nt) nt.textContent = `금액 ÷ 무게. ${PXNOTE[src] || ""}`;
+        if (nt) nt.textContent = "";   // 설명 문구 뺌 (사용자 지정 2026-10-13)
         const o = lineOption(X.dates, X.series.map((s, k) => ({ name: s.name, vals: s.vals, color: ["#1d1d1f", "#ff375f"][k] })), { unit: `(${x.unit})`, endLabel: true });
         o.series.forEach(sr => { sr.connectNulls = true; if (sr.endLabel) sr.endLabel.formatter = p => p.value == null ? "" : fmt(p.value, 1); });
         // Y축 최대값은 글로벌 선 기준 (사용자 지정 2026-10-13): 미국향·한국산은 물량이 적은 달에 튀어서, 튀는 값은 축 밖으로 잘림
