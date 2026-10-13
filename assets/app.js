@@ -242,15 +242,16 @@
     if (!d || !d.labels.length) return null;
     const L = d.labels, fc = d.fc;
     let series = [], legendOff = false;
-    const segs = kind === "ebitda" ? d.ebseg : d.seg;
+    const opStack = kind === "op" && fin.op_stack;   // 영업이익도 부문 누적 (기업별 지정, 2026-10-13)
+    const segs = kind === "ebitda" ? d.ebseg : opStack ? d.opseg : d.seg;
     const total = kind === "ebitda" ? d.ebitda : kind === "op" ? d.op : d.sales;
-    const useSeg = kind !== "op" && segs && segs.length >= 2 && segs.every(s => s.vals.some(v => v != null));
+    const useSeg = (kind !== "op" || opStack) && segs && segs.length >= 2 && segs.every(s => s.vals.some(v => v != null));
     if (useSeg) {
       segs.forEach((s, k) => series.push({ name: s.name, type: "bar", stack: "s", barMaxWidth: 34, emphasis: { focus: "series" },
         data: s.vals.map((v, i) => fcStyle(v, fc[i], PAL[k % PAL.length])),
         itemStyle: { borderRadius: 0 } }));
       // 합계 표시용 (막대 위 숫자)
-      series.push({ name: kind === "ebitda" ? "조정 EBITDA 합계" : "매출액 합계", type: "line", data: total, symbol: "none", lineStyle: { opacity: 0 }, itemStyle: { opacity: 0 }, tooltip: { show: true },
+      series.push({ name: kind === "ebitda" ? "조정 EBITDA 합계" : kind === "op" ? "영업이익 합계" : "매출액 합계", type: "line", data: total, symbol: "none", lineStyle: { opacity: 0 }, itemStyle: { opacity: 0 }, tooltip: { show: true },
         label: { show: mode === "y" || L.length <= 12, position: "top", color: "#1d1d1f", fontSize: 10, formatter: p => auto(p.value) }, z: 5, legendHoverLink: false });
     } else {
       const col = kind === "op" ? "#0071e3" : "#5e5ce6";
@@ -486,6 +487,16 @@
       const sg = $("#finSeg"); if (sg) $$("button", sg).forEach(b => b.classList.toggle("on", b.dataset.v === mode));
       seg(sg, v => { mode = v; draw(); });
       draw();
+      // 보고서 그림을 옮긴 차트 (data/report_charts.json): 비중 = 100% 누적 막대, 추이 = 막대
+      (d.report_charts || []).forEach((ch, i) => { const el = $("#rch" + i); if (!el) return;
+        lazy(el, c => { const share = ch.type === "share";
+          c.setOption(base({ legend: Object.assign(base().legend, { show: ch.series.length > 1, data: ch.series.map(s => s.name) }),
+            tooltip: Object.assign(base().tooltip, { axisPointer: { type: "shadow" }, valueFormatter: v => v == null ? "-" : fmt(v, 1) + (share ? "%" : "") }),
+            xAxis: xCat(ch.labels), yAxis: yVal({ name: ch.unit, max: share ? 100 : null }),
+            series: ch.series.map((s, k) => ({ name: s.name, type: "bar", stack: share ? "s" : undefined, barMaxWidth: 34, data: s.vals,
+              itemStyle: { color: share ? ["#8e8e93", "#636366", "#3a3a3c", "#f8c98a", "#f4a259", "#ff7a1a"][k % 6] : "#f4a259", borderRadius: share ? 0 : [5, 5, 0, 0] },
+              label: { show: true, position: share ? "inside" : "top", fontSize: 9.5, color: share ? (k <= 2 ? "#fff" : "#1d1d1f") : "#1d1d1f",
+                formatter: p => p.value == null || (share && p.value < 4) ? "" : fmt(p.value, 1) } })) }), true); }); });
       const ob = $("#chOrders");
       if (ob && fin.backlog) lazy(ob, c => {
         const bl = fin.backlog.q.labels.length ? fin.backlog.q : fin.backlog.y, od = fin.orders ? (fin.orders.q.labels.length ? fin.orders.q : fin.orders.y) : null;
