@@ -684,7 +684,8 @@
     };
     tradeChart(d.trade || {}, { chart: "#trChart", note: "#trNote", src: "#trSeg", hs: "#trHs", per: "#trPer" }, "850423");
     tradeChart(d.sw_trade || {}, { chart: "#swChart", note: "#swNote", src: "#swSeg", hs: "#swHs", per: "#swPer" }, "853710");
-    seg($("#trProd"), v => { $("#trCard").hidden = v !== "tr"; $("#swCard").hidden = v !== "sw";   // 무역: 제품(변압기/배전반) 고르기
+    tradeChart(d.sw_trade || {}, { chart: "#cbChart", note: "#cbNote", src: "#cbSeg", hs: "#cbHs", per: "#cbPer" }, "853590");
+    seg($("#trProd"), v => { $("#trCard").hidden = v !== "tr"; $("#swCard").hidden = v !== "sw"; $("#cbCard").hidden = v !== "cb";   // 무역: 제품(변압기/배전반) 고르기
       setTimeout(() => window.dispatchEvent(new Event("resize")), 30); });
     lightbox();
   };
