@@ -706,6 +706,7 @@
     if (ppi && pEl) lazy(pEl, c => c.setOption(ppiOpt("vals", ppi.unit || "(지수)", "")));
     if (ppi && pyEl) lazy(pyEl, c => c.setOption(ppiOpt("yoy", "YoY(%)", "%")));
     seg($("#ppiSeg"), v => { ppi = ppiGroups[+v] || ppiGroups[0]; drawPpi(); });
+    if (ppi) { const t = $("#ppiTitle"), t2 = $("#ppiYoyTitle"); if (t) t.textContent = ppi.title || "미국 " + ppi.name + " PPI"; if (t2) t2.textContent = ppi.title ? "전년 대비" : "PPI 전년 대비"; }   // 첫 화면 제목
     // 무역: 변압기 / 배전반 (2026-10-13) 같은 그림 — 국가별 쌓은 막대 + 비중 선(R)
     const tradeChart = (tr, ids, hs0, tk0) => {
       let tk = tk0 && tr[tk0] ? tk0 : (Object.keys(tr).find(k => tr[k]) || Object.keys(tr)[0]), hs = hs0, per = "월간";
