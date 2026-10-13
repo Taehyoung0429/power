@@ -587,7 +587,7 @@
       return Object.assign({}, g, { dates: add ? g.dates.concat([day]) : g.dates, series }); };
     const drawRel = () => { const g = withLive(rel[gi]); if (!g || !relEl._chart) return;
       const ss = g.series.map(s => ({ name: s.name, vals: relMode === "rel" ? s.rel : s.abs, dash: s.index, bold: s.index, color: s.index ? "#8e8e93" : undefined, base: relMode === "rel" ? 100 : null }));
-      relEl._chart.setOption(lineOption(g.dates, relMode === "rel" ? ss : ss.filter(s => !/(pt)/.test(s.name)), { unit: relMode === "rel" ? `(${g.base})` : "(종가)", zoom: true }), true);
+      relEl._chart.setOption(lineOption(g.dates, relMode === "rel" ? ss : ss.filter(s => !/(pt)/.test(s.name)), { unit: relMode === "rel" ? `(${g.base})` : "(종가)", zoom: true, endLabel: true }), true);   // 마지막 값 라벨 (홈과 같게) + 오른쪽 여백으로 마지막 날짜 안 잘림
       $("#relNote").textContent = `기준일 ${g.base}. 점선 = 지수.`; };
     if (relEl) lazy(relEl, () => drawRel());
     seg($("#relSeg"), v => { gi = +v; drawRel(); });
