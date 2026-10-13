@@ -671,7 +671,14 @@
     // 마지막 데이터: 표식 + 값 라벨을 점 위/아래에 (위쪽 선은 위로, 아래쪽 선은 아래로) → 오른쪽 여백 없이 차트를 넓게
     const lastIdx = vals => { let i = vals.length - 1; while (i >= 0 && vals[i] == null) i--; return i; };
     const ppiOpt = (key, unit, suf) => {
-      const o = lineOption(ppi.dates, ppi.series.map((s, k) => ({ name: s.name + (key === "yoy" ? " YoY" : ""), vals: s[key], color: PAL[k] })), { unit, suf, endLabel: false });
+      const many = ppi.series.length > 3;   // 전체 비교: 선이 많아 끝 값 라벨을 겹치지 않게 오른쪽에 (상대주가 그래프와 같은 방식)
+      const o = lineOption(ppi.dates, ppi.series.map((s, k) => ({ name: s.name + (key === "yoy" ? " YoY" : ""), vals: s[key], color: PAL[k] })), { unit, suf, endLabel: many });
+      if (many) { if (key === "yoy") o.series[0].markLine = { silent: true, symbol: "none", data: [{ yAxis: 0 }], lineStyle: { color: "#c7c7cc" }, label: { show: false } };
+        const y0 = +String(ppi.dates[0]).slice(0, 4);
+        Object.assign(o.xAxis.axisLabel, { hideOverlap: false, interval: (i, v) => /-01$/.test(v) && (+v.slice(0, 4) - y0) % 3 === 0 }); o.xAxis.axisTick = { show: false };
+        o.grid.left = key === "yoy" ? 18 : 30;   // 긴 축 제목 (19.01=100) / YoY(%) 잘리지 않게
+        o.series.forEach(sr => { if (sr.endLabel) sr.endLabel.formatter = p => p.value == null ? "" : fmt(p.value, key === "yoy" ? 1 : 0) + (key === "yoy" ? "%" : ""); });
+        return o; }
       const lasts = ppi.series.map(s => { const i = lastIdx(s[key]); return i < 0 ? null : s[key][i]; });
       const top = Math.max(...lasts.filter(v => v != null));
       // BLS 미공표 기간이 길면(3개월 이상, 예: 터빈 2016.10~2017.12) 선을 끊고, 한두 달 빈 곳은 이어서 그림
