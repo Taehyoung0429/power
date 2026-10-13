@@ -744,7 +744,7 @@
     const PXSRC = { us_transformer_trade: "us", eu_transformer_trade: "eu", kr_transformer_trade: "kr", cn_transformer_trade: "cn" };
     const PXNOTE = { us: "해상·항공 운송분 기준 (육로 수입은 무게 자료 없음)", eu: "역외 수입 · 유로 기준", kr: "", cn: "무게(제2수량 kg) 기준" };
     const tradeChart = (tr, ids, hs0, tk0) => {
-      let tk = tk0 && tr[tk0] ? tk0 : (Object.keys(tr).find(k => tr[k]) || Object.keys(tr)[0]), hs = hs0, per = "월간", rng = 10;   // 기간: 전체(0) / 10년 / 5년
+      let tk = tk0 && tr[tk0] ? tk0 : (Object.keys(tr).find(k => tr[k]) || Object.keys(tr)[0]), hs = hs0, per = "월간", rng = 5;   // 기간: 5년 / 10년 / 전체(0) — 처음엔 5년 (사용자 지정)
       let shownDates = [];   // 막대 그래프에 보이는 기간 → 단가 그래프도 같은 축
       const tEl = $(ids.chart); if (!tEl) return;
       const pEl = $(ids.chart.replace("Chart", "Px"));
