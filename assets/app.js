@@ -662,11 +662,11 @@
     if (ppi && pyEl) lazy(pyEl, c => c.setOption(ppiOpt("yoy", "YoY(%)", "%")));
     seg($("#ppiSeg"), v => { ppi = ppiGroups[+v] || ppiGroups[0]; drawPpi(); });
     // 무역: 변압기 / 배전반 (2026-10-13) 같은 그림 — 국가별 쌓은 막대 + 비중 선(R)
-    const tradeChart = (tr, ids, hs0) => {
-      let tk = Object.keys(tr).find(k => tr[k]) || Object.keys(tr)[0], hs = hs0, per = "월간";
+    const tradeChart = (tr, ids, hs0, tk0) => {
+      let tk = tk0 && tr[tk0] ? tk0 : (Object.keys(tr).find(k => tr[k]) || Object.keys(tr)[0]), hs = hs0, per = "월간";
       const tEl = $(ids.chart); if (!tEl) return;
       const curT = () => (tr[tk] || {})[hs + "_" + per];
-      const drawTr = () => { const t = curT(); if (!tEl._chart) return; if (!t) { tEl._chart.clear(); $(ids.note).textContent = "자료 준비 중"; return; }
+      const drawTr = () => { const t = curT(); if (!tEl._chart) return; if (!t) { tEl._chart.clear(); $(ids.note).textContent = tr[tk] ? "이 자료(나라 통계)에는 해당 품목의 세분 코드가 없습니다" : "자료 준비 중"; return; }
         const named = t.series.filter(s => s.name !== "합계"); const tot = t.series.find(s => s.name === "합계");
         let s0 = per === "월간" ? Math.max(0, t.dates.length - 60) : Math.max(0, t.dates.length - 20);
         tEl._chart.setOption(base({ tooltip: Object.assign(base().tooltip, { axisPointer: { type: "shadow" }, valueFormatter: v => v == null ? "-" : fmt(v, 1) }),
@@ -684,7 +684,7 @@
     };
     tradeChart(d.trade || {}, { chart: "#trChart", note: "#trNote", src: "#trSeg", hs: "#trHs", per: "#trPer" }, "850423");
     tradeChart(d.sw_trade || {}, { chart: "#swChart", note: "#swNote", src: "#swSeg", hs: "#swHs", per: "#swPer" }, "853710");
-    tradeChart(d.sw_trade || {}, { chart: "#cbChart", note: "#cbNote", src: "#cbSeg", hs: "#cbHs", per: "#cbPer" }, "853590");
+    tradeChart(d.sw_trade || {}, { chart: "#cbChart", note: "#cbNote", src: "#cbSeg", hs: "#cbHs", per: "#cbPer" }, "85359010", "kr");
     seg($("#trProd"), v => { $("#trCard").hidden = v !== "tr"; $("#swCard").hidden = v !== "sw"; $("#cbCard").hidden = v !== "cb";   // 무역: 제품(변압기/배전반) 고르기
       setTimeout(() => window.dispatchEvent(new Event("resize")), 30); });
     lightbox();
