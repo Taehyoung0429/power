@@ -674,6 +674,10 @@
       const o = lineOption(ppi.dates, ppi.series.map((s, k) => ({ name: s.name + (key === "yoy" ? " YoY" : ""), vals: s[key], color: PAL[k] })), { unit, suf, endLabel: false });
       const lasts = ppi.series.map(s => { const i = lastIdx(s[key]); return i < 0 ? null : s[key][i]; });
       const top = Math.max(...lasts.filter(v => v != null));
+      // BLS 미공표 기간이 길면(3개월 이상, 예: 터빈 2016.10~2017.12) 선을 끊고, 한두 달 빈 곳은 이어서 그림
+      o.series.forEach((sr, k) => { const v = ppi.series[k][key]; let run = 0, mx = 0, seen = false;
+        v.forEach(x => { if (x == null) { if (seen) run++; } else { seen = true; mx = Math.max(mx, run); run = 0; } });
+        sr.connectNulls = mx < 3; });
       o.series.forEach((sr, k) => { const vals = ppi.series[k][key], i = lastIdx(vals); if (i < 0) return;
         const up = lasts[k] === top;
         sr.markPoint = { silent: true, data: [{ coord: [i, vals[i]], value: vals[i], symbol: "circle", symbolSize: 9,
