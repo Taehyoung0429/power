@@ -517,7 +517,7 @@
       const niceCeil = x => { const p = Math.pow(10, Math.floor(Math.log10(x))); return [1, 2, 2.5, 5, 10].map(k => k * p).find(v => v >= x - 1e-9); };
       const leftStep = m => niceStep(m, 4);
       // 단위가 다르면(예: LS 십억원 vs 조원) 같게 맞추지 않음 (2026-10-14)
-      const money = (d.report_charts || []).filter(ch => /^stack|^combo/.test(ch.type));
+      const money = (d.report_charts || []).filter(ch => /^stack|^combo$/.test(ch.type));
       // 누적 합이 막대+선의 '선'(수주잔고)과 같은 크기면 (LS 그림 10 = 수주잔고) 막대(신규수주)와 맞추지 않음
       const sums = ch => ch.labels.map((_, i) => ch.series.reduce((t, s) => t + (s.vals[i] || 0), 0));
       const lineLike = money.some(st => st.type !== "combo" && money.some(cb => { if (cb.type !== "combo") return false;
@@ -529,6 +529,16 @@
         if (!m) return null; const st = leftStep(m); return Math.ceil(m / st - 1e-9) * st; })();
       (d.report_charts || []).forEach((ch, i) => { const el = $("#rch" + i); if (!el) return;
         if (!ch.series.some(s => s.vals.some(v => v != null))) { el.innerHTML = '<p class="note" style="padding:40px 0;text-align:center">값 입력 대기 중</p>'; return; }
+        if (ch.type === "combo_stack") {   // 누적막대+선 (일진전기 부문별, 2026-10-14): 이름에 '잔고' 들어간 계열 = 선(오른쪽 축), 나머지 = 쌓은 막대. 음수는 0에서 자름
+          const isLn = s => /잔고/.test(s.name), bars = ch.series.filter(s => !isLn(s)), lns = ch.series.filter(isLn);
+          const bc = ["#0071e3", "#8ec5ff", "#34c759", "#aeaeb2"], lc = ["#ff9f0a", "#ff375f", "#af52de", "#1d1d1f"];
+          lazy(el, c => c.setOption(base({ legend: Object.assign(base().legend, { data: ch.series.map(s => s.name) }),
+            tooltip: Object.assign(base().tooltip, { axisPointer: { type: "shadow" }, valueFormatter: v => v == null ? "-" : fmt(v, 1) }), noAlign: true,
+            xAxis: xCat(ch.labels), yAxis: [yVal({ name: ch.unit, min: 0 }), yVal({ name: ch.unit, min: 0, splitLine: { show: false } })],
+            series: [...bars.map((s, k) => ({ name: s.name, type: "bar", stack: "s", barMaxWidth: 30, data: s.vals, itemStyle: { color: bc[k % 4] } })),
+              ...lns.map((s, k) => ({ name: s.name, type: "line", yAxisIndex: 1, data: s.vals, symbol: "circle", symbolSize: 6, lineStyle: { width: 2.5, color: lc[k % 4] },
+                itemStyle: { color: "#fff", borderColor: lc[k % 4], borderWidth: 2 } }))] }), true));
+          return; }
         if (ch.type === "stack" || ch.type === "stack_share" || ch.type === "combo") {   // 누적(금액 쌓은 막대) / 누적+비중선(첫 계열 비중, 오른쪽 축) / 막대+선(첫 계열 막대, 나머지 선·오른쪽 축)
           const dec = ch.series.some(s => s.vals.some(v => v != null && Math.abs(v - Math.round(v)) > 1e-9)) && ch.type !== "combo" && Math.max(0, ...ch.series.flatMap(s => s.vals).filter(v => v != null)) < 100 ? 1 : 0;   // 조원처럼 소수 값이면 소수 1자리
           lazy(el, c => { const combo = ch.type === "combo", shareLn = ch.type === "stack_share", cols = ["#636366", "#aeaeb2", "#d1d1d6", "#f8c98a", "#c4a88f", "#ff9f0a"];
@@ -538,7 +548,7 @@
                   return `<b>${ch.labels[i]}</b><br>` + ps.map(p => `${p.marker} ${p.seriesName} <b style="float:right;margin-left:16px">${p.value == null ? "-" : fmt(p.value, /비중/.test(p.seriesName) ? 1 : dec) + (/비중/.test(p.seriesName) ? "%" : "")}</b>`).join("<br>")
                     + `<div style="border-top:1px solid #e5e5ea;margin-top:4px;padding-top:4px">합계 <b style="float:right;margin-left:16px">${fmt(tot, dec)}</b></div>`; } }),
               noAlign: true,
-              xAxis: xCat(ch.labels), yAxis: (() => { if (!leftMax) return combo || shareLn ? [yVal({ name: ch.unit }), yVal({ name: combo ? ch.unit : "(%)", splitLine: { show: false } })] : yVal({ name: ch.unit });
+              xAxis: xCat(ch.labels), yAxis: (() => { if (!leftMax) return combo || shareLn ? [yVal({ name: ch.unit, min: 0 }), yVal({ name: combo ? ch.unit : "(%)", splitLine: { show: false } })] : yVal({ name: ch.unit });
                 const stL = leftStep(leftMax), n = Math.round(leftMax / stL), L = yVal({ name: ch.unit, min: 0, max: leftMax, interval: stL });
                 if (combo) { const R = Math.max(0, ...ch.series.slice(1).flatMap(s => s.vals).filter(v => v != null)), stR = niceCeil(R / n || 1);
                   return [L, yVal({ name: ch.unit, min: 0, max: stR * n, interval: stR, splitLine: { show: false } })]; }
