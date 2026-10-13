@@ -502,7 +502,10 @@
             xAxis: xCat(bd.dates, { boundaryGap: false, axisLabel: { formatter: v => v.slice(2, 7).replace("-", "."), interval: "auto" } }),
             yAxis: yVal({ name: k1 > 1 ? "(천원)" : "(원)", max: bandMax }), grid: Object.assign(base().grid, { right: 22 }),
             series: [...b.mults.map((m, i) => ({ name: fmt(m, m % 1 ? 1 : 0) + "X", type: "line", data: b.lines[i].map(sc), symbol: "none", lineStyle: { width: 1.5, color: greys[i] }, itemStyle: { color: greys[i] } })),
-              { name: "주가", type: "line", data: bd.price.map(sc), symbol: "none", connectNulls: true, lineStyle: { width: 2.2, color: "#ff9f0a" }, itemStyle: { color: "#ff9f0a" }, z: 10 }] }), true); }); });
+              { name: "주가", type: "line", data: bd.price.map(sc), symbol: "none", connectNulls: true, lineStyle: { width: 2.2, color: "#ff9f0a" }, itemStyle: { color: "#ff9f0a" }, z: 10,
+                markPoint: (() => { let i = bd.price.length - 1; while (i >= 0 && bd.price[i] == null) i--; if (i < 0) return undefined;   // 가장 최근 주가: 표식 + 지금 배수 (소수 1자리)
+                  return { silent: true, data: [{ coord: [i, sc(bd.price[i])], value: b.now, symbol: "circle", symbolSize: 9, itemStyle: { color: "#fff", borderColor: "#ff9f0a", borderWidth: 2.5 },
+                    label: { show: true, position: "bottom", distance: 6, color: "#c25e00", fontSize: 11, fontWeight: 700, backgroundColor: "rgba(255,255,255,.9)", padding: [2, 4], borderRadius: 4, formatter: () => fmt(b.now, 1) + "X" } }] }; })() }] }), true); }); });
       // 보고서 그림을 옮긴 차트 (data/report_charts.json): 비중 = 100% 누적 막대, 추이 = 막대
       (d.report_charts || []).forEach((ch, i) => { const el = $("#rch" + i); if (!el) return;
         lazy(el, c => { const share = ch.type === "share";
