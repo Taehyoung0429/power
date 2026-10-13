@@ -518,7 +518,11 @@
       const leftStep = m => niceStep(m, 4);
       // 단위가 다르면(예: LS 십억원 vs 조원) 같게 맞추지 않음 (2026-10-14)
       const money = (d.report_charts || []).filter(ch => /^stack|^combo/.test(ch.type));
-      const leftMax = new Set(money.map(ch => ch.unit)).size !== 1 ? null : (() => { let m = 0; const mx = a => Math.max(0, ...a.filter(v => v != null));
+      // 누적 합이 막대+선의 '선'(수주잔고)과 같은 크기면 (LS 그림 10 = 수주잔고) 막대(신규수주)와 맞추지 않음
+      const sums = ch => ch.labels.map((_, i) => ch.series.reduce((t, s) => t + (s.vals[i] || 0), 0));
+      const lineLike = money.some(st => st.type !== "combo" && money.some(cb => { if (cb.type !== "combo") return false;
+        const a = Math.max(0, ...sums(st)), b = Math.max(0, ...cb.series.slice(1).flatMap(s => s.vals).filter(v => v != null)); return b && Math.abs(a - b) / b < 0.1; }));
+      const leftMax = lineLike || new Set(money.map(ch => ch.unit)).size !== 1 ? null : (() => { let m = 0; const mx = a => Math.max(0, ...a.filter(v => v != null));
         money.forEach(ch => {
           if (ch.type !== "combo") ch.labels.forEach((_, i) => { m = Math.max(m, ch.series.reduce((t, s) => t + (s.vals[i] || 0), 0)); });
           if (ch.type === "combo") m = Math.max(m, mx(ch.series[0].vals)); });
@@ -526,7 +530,7 @@
       (d.report_charts || []).forEach((ch, i) => { const el = $("#rch" + i); if (!el) return;
         if (!ch.series.some(s => s.vals.some(v => v != null))) { el.innerHTML = '<p class="note" style="padding:40px 0;text-align:center">값 입력 대기 중</p>'; return; }
         if (ch.type === "stack" || ch.type === "stack_share" || ch.type === "combo") {   // 누적(금액 쌓은 막대) / 누적+비중선(첫 계열 비중, 오른쪽 축) / 막대+선(첫 계열 막대, 나머지 선·오른쪽 축)
-          const dec = ch.series.some(s => s.vals.some(v => v != null && Math.abs(v - Math.round(v)) > 1e-9)) && ch.type !== "combo" ? 1 : 0;   // 조원처럼 소수 값이면 소수 1자리
+          const dec = ch.series.some(s => s.vals.some(v => v != null && Math.abs(v - Math.round(v)) > 1e-9)) && ch.type !== "combo" && Math.max(0, ...ch.series.flatMap(s => s.vals).filter(v => v != null)) < 100 ? 1 : 0;   // 조원처럼 소수 값이면 소수 1자리
           lazy(el, c => { const combo = ch.type === "combo", shareLn = ch.type === "stack_share", cols = ["#636366", "#aeaeb2", "#d1d1d6", "#f8c98a", "#c4a88f", "#ff9f0a"];
             c.setOption(base({ legend: Object.assign(base().legend, { data: ch.series.map(s => s.name).concat(shareLn ? [ch.series[0].name + " 비중(R)"] : []) }),
               tooltip: Object.assign(base().tooltip, { axisPointer: { type: "shadow" }, valueFormatter: v => v == null ? "-" : fmt(v, dec) },
