@@ -489,13 +489,18 @@
       draw();
       // 12MF PER·PBR 밴드 (valband.py): 회색 배수선 + 주황 주가
       const bd = d.band;
+      // 두 밴드 차트 Y축 최대값을 같게 (사용자 지정 2026-10-13): 두 그림의 선·주가 중 최대값을 보기 좋게 올림
+      const bandMax = (() => { if (!bd) return null; const k1 = Math.max(...bd.price.filter(v => v)) >= 100000 ? 1000 : 1;
+        let m = Math.max(...bd.price.filter(v => v)); ["per", "pbr"].forEach(k => bd[k] && bd[k].lines.forEach(l => l.forEach(v => { if (v != null && v > m) m = v; })));
+        m = m / k1; const p = Math.pow(10, Math.floor(Math.log10(m))); const st = [1, 2, 2.5, 5, 10].map(x => x * p / 2).find(s => Math.ceil(m / s) * s >= m && Math.ceil(m / s) <= 8) || p;
+        return Math.ceil(m / st) * st; })();
       [["#chPerBand", "per"], ["#chPbrBand", "pbr"]].forEach(([id, key]) => { const el = $(id), b = bd && bd[key]; if (!el || !b) return;
         lazy(el, c => { const k1 = Math.max(...bd.price.filter(v => v)) >= 100000 ? 1000 : 1, sc = v => v == null ? null : +(v / k1).toFixed(k1 > 1 ? 1 : 0);
           const greys = ["#d1d1d6", "#aeaeb2", "#8e8e93", "#636366", "#3a3a3c"];
           c.setOption(base({ legend: Object.assign(base().legend, { data: b.mults.map(m => fmt(m, m % 1 ? 1 : 0) + "X") }),
             tooltip: Object.assign(base().tooltip, { valueFormatter: v => v == null ? "-" : fmt(v, k1 > 1 ? 1 : 0) }),
             xAxis: xCat(bd.dates, { boundaryGap: false, axisLabel: { formatter: v => v.slice(2, 7).replace("-", "."), interval: "auto" } }),
-            yAxis: yVal({ name: k1 > 1 ? "(천원)" : "(원)" }), grid: Object.assign(base().grid, { right: 22 }),
+            yAxis: yVal({ name: k1 > 1 ? "(천원)" : "(원)", max: bandMax }), grid: Object.assign(base().grid, { right: 22 }),
             series: [...b.mults.map((m, i) => ({ name: fmt(m, m % 1 ? 1 : 0) + "X", type: "line", data: b.lines[i].map(sc), symbol: "none", lineStyle: { width: 1.5, color: greys[i] }, itemStyle: { color: greys[i] } })),
               { name: "주가", type: "line", data: bd.price.map(sc), symbol: "none", connectNulls: true, lineStyle: { width: 2.2, color: "#ff9f0a" }, itemStyle: { color: "#ff9f0a" }, z: 10 }] }), true); }); });
       // 보고서 그림을 옮긴 차트 (data/report_charts.json): 비중 = 100% 누적 막대, 추이 = 막대
