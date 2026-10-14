@@ -739,6 +739,44 @@
       seg($("#elPer"), v => { per = v; draw(); });
       seg($("#elRng"), v => { rng = +v; draw(); });
       area.addEventListener("change", () => { one = area.value; draw(); }); })();
+    // 미국 전기 사용량 (EIA 판매 전력량, 2026-10-14): 미국 전체 = ISO/RTO 10개 + 기타 누적 영역, ISO = 소속 주 누적, 주 = 단독. 오른쪽 전년 대비 (합계만 보이고 나머지는 범례로 켬)
+    (() => { const el = $("#esChart"), ey = $("#esYoy"), area = $("#esArea"); if (!el) return;
+      let E = null, one = "US", sec = "ALL", per = "m", rng = 5, busy = false;
+      const CC = ["#0071e3", "#ff375f", "#ff9f0a", "#34c759", "#af52de", "#5ac8fa", "#a2845e", "#30b0c7", "#ffcc00", "#5856d6", "#c7c7cc", "#ff6b81", "#64d2a0", "#8e8e93"];
+      const nameOf = id => { if (id === "OTH") return "기타"; const g = E.iso.find(x => x.id === id) || E.regions.find(x => x.id === id); if (g) return g.name;
+        for (const r of E.regions) { const x = (r.states || []).find(y => y.id === id); if (x) return x.name; } return id; };
+      const parts = () => one === "US" ? E.iso.map(g => g.id).concat(["OTH"]) : (E.iso.find(g => g.id === one) || {}).states || [];
+      const draw = () => { if (!E || !el._chart || !ey._chart) return; const P = E[per], n = P.dates.length;
+        const lag = per === "m" ? 12 : 1, cut = rng ? Math.max(0, n - rng * (per === "m" ? 12 : 1)) : 0, ds = P.dates.slice(cut);
+        const tw = a => (a || []).map(v => v == null ? null : +(v / 1000).toFixed(1));   // GWh → TWh
+        const ids = parts(), tot = P.vals[one + "|" + sec] || [];
+        $("#esTitle").textContent = nameOf(one) + " " + (sec === "ALL" ? "" : E.sectors.find(x => x.id === sec).name + " ") + "전기 사용량";
+        const comp = ids.length ? ids.map((id, k) => ({ name: nameOf(id), vals: tw(P.vals[id + "|" + sec]).slice(cut), color: id === "OTH" ? "#c7c7cc" : CC[k % CC.length] }))
+          : [{ name: nameOf(one), vals: tw(tot).slice(cut), color: "#0071e3" }];
+        const o = lineOption(ds, comp, { unit: "(TWh)", dec: 1 });
+        o.series.forEach(x => { x.stack = "t"; x.smooth = false; x.areaStyle = { opacity: 0.85 }; x.lineStyle = Object.assign({}, x.lineStyle, { width: 0.6 }); x.emphasis = { focus: "none" }; });
+        o.yAxis = Object.assign(o.yAxis, { scale: false, min: 0 }); o.grid.right = 24;   // 누적은 0부터, 마지막 연도 라벨 안 잘리게
+        const T = tw(tot).slice(cut);
+        o.tooltip = Object.assign(o.tooltip, { formatter: ps => { const i = ps[0].dataIndex; return `<b>${ds[i]}</b><br>` + ps.slice().reverse().map(p => `${p.marker} ${p.seriesName} <b style="float:right;margin-left:16px">${p.value == null ? "-" : fmt(p.value, 1)}</b>`).join("<br>")
+          + `<div style="border-top:1px solid #e5e5ea;margin-top:4px;padding-top:4px">합계 <b style="float:right;margin-left:16px">${T[i] == null ? "-" : fmt(T[i], 1)} TWh</b></div>`; } });
+        el._chart.setOption(o, true);
+        const yy = a => a.map((v, i) => i >= lag && v != null && a[i - lag] ? +(100 * (v / a[i - lag] - 1)).toFixed(1) : null);
+        const totName = nameOf(one) + " 총량";
+        const ys = [{ name: totName, vals: yy(tot).slice(cut), color: "#1d1d1f", bold: true, base: 0.0001 }].concat(ids.map((id, k) => ({ name: nameOf(id), vals: yy(P.vals[id + "|" + sec] || []).slice(cut), color: id === "OTH" ? "#8e8e93" : CC[k % CC.length] })));
+        const oy = lineOption(ds, ys, { unit: "YoY(%)", suf: "%", endLabel: true, dec: 1 });
+        oy.legend.selected = Object.fromEntries(ys.map((x, k) => [x.name, k === 0]));   // 처음엔 합계만, 범례를 누르면 지역별 선이 켜짐
+        ey._chart.setOption(oy, true); };
+      const load = () => { if (E || busy) return; busy = true;
+        fetch("assets/eia_sales.json?v=" + Date.now().toString().slice(0, -5)).then(r => r.json()).then(j => { E = j;
+          const states = E.regions.flatMap(r => r.states || []).sort((a, b) => a.name.localeCompare(b.name));
+          area.innerHTML = '<option value="US">미국 전체 (ISO/RTO별)</option><optgroup label="ISO/RTO (주별)">' + E.iso.map(g => `<option value="${g.id}">${g.name}</option>`).join("")
+            + '</optgroup><optgroup label="주">' + states.map(x => `<option value="${x.id}">${x.name}</option>`).join("") + "</optgroup>";
+          draw(); }).catch(() => { el.innerHTML = '<p class="note" style="padding:40px 0;text-align:center">데이터를 읽지 못했습니다</p>'; }); };
+      lazy(el, () => { load(); draw(); }); lazy(ey, () => draw());
+      seg($("#esSec"), v => { sec = v; draw(); });
+      seg($("#esPer"), v => { per = v; draw(); });
+      seg($("#esRng"), v => { rng = +v; draw(); });
+      area.addEventListener("change", () => { one = area.value; draw(); }); })();
     // 수주 합산 (2026-10-14): 5개사 신규수주 / 수주잔고 누적 막대, 툴팁 맨 아래 합계
     const os = d.orders_sum;
     if (os) [["#ordSum", os.orders], ["#blSum", os.backlog]].forEach(([id, ser]) => { const el = $(id); if (!el || !ser.length) return;
