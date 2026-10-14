@@ -358,7 +358,7 @@
   window.revOption = revOption;
 
   function flowOption(f, range) {
-    let n = { "1m": 21, "3m": 63, "6m": 126, "1y": 240 }[range] || 63;
+    let n = range === "all" ? f.dates.length : ({ "1m": 21, "3m": 63, "6m": 126, "1y": 240 }[range] || 63);
     const s = Math.max(0, f.dates.length - n);
     const D = f.dates.slice(s), fo = f.foreign.slice(s), og = f.organ.slice(s), iv = (f.individual || []).slice(s);
     const cum = a => { let t = 0; return a.map(v => +(t += v || 0).toFixed(1)); };
@@ -645,7 +645,7 @@
     window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if (h) showTab(h); window.scrollTo({ top: 0, behavior: "smooth" }); });
     // 시장 지표 카드 → 큰 차트
     const big = $("#mkBig"); let cur = (d.market || [])[0];
-    const rangeCut = r => { const days = { "3m": 92, "6m": 182, "1y": 365, all: 9999 }[r]; return new Date(Date.now() - days * 864e5).toISOString().slice(0, 10); };
+    const rangeCut = r => { const days = { "1m": 31, "3m": 92, "6m": 182, "1y": 365, all: 9999 }[r]; return new Date(Date.now() - days * 864e5).toISOString().slice(0, 10); };
     let mr = "1y";
     const drawMk = () => { if (!cur || !big) return; const cut = rangeCut(mr); const idx = cur.dates.findIndex(x => x >= cut); const s = Math.max(0, idx);
       $("#mkTitle").textContent = cur.name; $("#mkUnit").textContent = cur.unit;
@@ -697,7 +697,7 @@
     toggleData($("#ppData"), $("#ppDataBox"), () => { const g = pp[pg]; const names = Object.keys(g.per);
       dataTable($("#ppDataBox"), ["연도", ...names.map(n => n + " PER"), ...Object.keys(g.pbr).map(n => n + " PBR")], g.years.map((y, k) => [y, ...names.map(n => g.per[n][k]), ...Object.keys(g.pbr).map(n => g.pbr[n][k])]), "PER_PBR"); });
     // 외국인 보유율
-    const fr = d.foreign || []; let fi = +(($("#frSeg button.on") || {}).dataset || {}).v || 0, frg = "1y";
+    const fr = d.foreign || []; let fi = +(($("#frSeg button.on") || {}).dataset || {}).v || 0, frg = "6m";
     const frEl = $("#frChart");
     const drawFr = () => { const g = fr[fi]; if (!g || !frEl._chart) return; const cut = rangeCut(frg); const s = Math.max(0, g.dates.findIndex(x => x >= cut));
       frEl._chart.setOption(lineOption(g.dates.slice(s), g.series.map(x => ({ name: x.name, vals: x.vals.slice(s) })), { unit: "(%)", suf: "%", endLabel: true }), true); };
@@ -750,9 +750,9 @@
         xAxis: xCat(os.labels), yAxis: yVal({ name: "(십억원)", min: 0 }),
         series: ser.map(s => ({ name: s.name, type: "bar", stack: "s", barMaxWidth: 26, data: s.vals, itemStyle: { color: cols[Math.max(0, names.indexOf(s.name)) % 5] } })) }), true)); });
     // 섹터 수급 합산 (기업 수급 차트와 같은 모양: 일별 막대 + 누적 선, 억원)
-    const sf = d.sflow || []; let si = 0, srg = "3m";   // 첫 그룹(메뉴 순서대로)부터
+    const sf = d.sflow || []; let si = 0, srg = "6m";   // 첫 그룹(메뉴 순서대로)부터
     const sfEl = $("#sfChart");
-    const sfStats = () => { const g = sf[si]; if (!g) return; const n = { "1m": 21, "3m": 63, "6m": 126, "1y": 240 }[srg], LAB = { "1m": "1개월", "3m": "3개월", "6m": "6개월", "1y": "1년" }[srg];
+    const sfStats = () => { const g = sf[si]; if (!g) return; const n = srg === "all" ? g.dates.length : { "1m": 21, "3m": 63, "6m": 126, "1y": 240 }[srg], LAB = srg === "all" ? `${g.dates[0].slice(0, 7).replace("-", ".")} 이후` : { "1m": "1개월", "3m": "3개월", "6m": "6개월", "1y": "1년" }[srg];
       const sum = a => a.slice(-n).reduce((t, v) => t + (v || 0), 0);
       $("#sfStats").innerHTML = [["외국인", g.foreign], ["기관", g.organ], ["개인", g.individual]].map(([k, a]) => { const v = sum(a);
         return `<div class="kpi"><div class="l">${g.group} ${k} ${LAB} 순매수</div><div class="v ${v > 0 ? "up" : v < 0 ? "down" : ""}" style="font-size:24px">${v > 0 ? "+" : ""}${fmt(v, 0)}억</div></div>`; }).join("");
