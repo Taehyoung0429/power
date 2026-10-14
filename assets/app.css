@@ -598,3 +598,10 @@ table.t td:first-child{z-index:1}
 .el-sel{font:inherit;font-size:14px;padding:7px 30px 7px 12px;border-radius:10px;border:0;background:rgba(118,118,128,.12) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236e6e73' fill='none' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 11px center;-webkit-appearance:none;appearance:none;color:#1d1d1f;cursor:pointer}
 .el-sel:disabled{opacity:.5;cursor:default}
 @media (max-width:640px){.el-ctl{flex-wrap:wrap;row-gap:10px}.el-sel{width:100%}}
+.el-picks{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.el-chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;background:#fff;border:1px solid #e3e3ea;border-radius:999px;padding:5px 10px}
+.el-chip i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.el-chip b{cursor:pointer;color:#8e8e93;font-weight:500;margin-left:2px;font-size:15px;line-height:1}
+.el-chip b:hover{color:#ff375f}
+.el-add{font-size:13px;padding:5px 28px 5px 10px}
+@media (max-width:640px){.el-add{width:auto}}

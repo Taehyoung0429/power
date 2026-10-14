@@ -705,28 +705,40 @@
     seg($("#frSeg"), v => { fi = +v; drawFr(); });
     seg($("#frRange"), v => { frg = v; drawFr(); });
     toggleData($("#frData"), $("#frDataBox"), () => { const g = fr[fi]; dataTable($("#frDataBox"), ["날짜", ...g.series.map(s => s.name)], g.dates.map((x, i) => [x, ...g.series.map(s => s.vals[i])]).reverse(), "외국인보유율"); });
-    // 미국 전기요금 (EIA, 2026-10-14): 권역 → (주) → 용도 4개 선 + 전년 대비. 데이터는 탭을 열 때 assets/eia_price.json 에서
-    (() => { const el = $("#elChart"), ey = $("#elYoy"), sel = $("#elState"); if (!el) return;
-      let E = null, reg = "US", st = "", per = "m", rng = 5, busy = false;
-      const cols = ["#1d1d1f", "#ff9f0a", "#0071e3", "#34c759"];
-      const draw = () => { if (!E || !el._chart || !ey._chart) return; const P = E[per], area = st || reg, n = P.dates.length;
-        const rr = E.regions.find(r => r.id === reg), sn = st ? (rr.states.find(x => x.id === st) || {}).name : rr.name;
-        const t = $("#elTitle"); if (t) t.textContent = sn + " 전기요금";
+    // 미국 전기요금 (EIA, 2026-10-14): '지역 비교' = 용도 하나로 여러 지역 선 / '지역별 용도' = 한 지역의 용도 4개 선. 오른쪽은 전년 대비.
+    // 데이터는 탭을 열 때 assets/eia_price.json 에서 (ERCOT·PJM 은 주 묶음 근사)
+    (() => { const el = $("#elChart"), ey = $("#elYoy"), area = $("#elArea"), picksBox = $("#elPicks"); if (!el) return;
+      let E = null, mode = "cmp", one = "US", sec = "ALL", per = "m", rng = 5, picks = ["US", "ERCOT", "PJM"], busy = false;
+      const SC = ["#1d1d1f", "#ff9f0a", "#0071e3", "#34c759"], CC = ["#1d1d1f", "#ff375f", "#0071e3", "#ff9f0a", "#34c759", "#af52de", "#5ac8fa", "#a2845e", "#8e8e93"];
+      const nameOf = id => { if (!E) return id; const g = E.iso.find(x => x.id === id) || E.regions.find(x => x.id === id); if (g) return g.name;
+        for (const r of E.regions) { const s = (r.states || []).find(x => x.id === id); if (s) return s.name; } return id; };
+      const options = (skip = []) => { const o = (lab, arr) => { const it = arr.filter(x => !skip.includes(x.id)); return it.length ? `<optgroup label="${lab}">` + it.map(x => `<option value="${x.id}">${x.name}</option>`).join("") + "</optgroup>" : ""; };
+        const states = E.regions.flatMap(r => r.states || []).sort((a, b) => a.name.localeCompare(b.name));
+        return o("전력시장 (근사)", E.iso) + o("미국·권역", E.regions.map(r => ({ id: r.id, name: r.name }))) + o("주", states); };
+      const renderPicks = () => { if (mode !== "cmp" || !E) { picksBox.innerHTML = ""; return; }
+        picksBox.innerHTML = picks.map((id, k) => `<span class="el-chip"><i style="background:${CC[k % CC.length]}"></i>${nameOf(id)}${picks.length > 1 ? `<b data-x="${id}">×</b>` : ""}</span>`).join("")
+          + `<select class="el-sel el-add"><option value="">+ 지역 추가</option>${options(picks)}</select>`;
+        picksBox.querySelectorAll("b[data-x]").forEach(b => b.onclick = () => { picks = picks.filter(x => x !== b.dataset.x); renderPicks(); draw(); });
+        const add = picksBox.querySelector(".el-add"); add.onchange = () => { if (add.value && picks.length < 9) { picks.push(add.value); renderPicks(); draw(); } }; };
+      const draw = () => { if (!E || !el._chart || !ey._chart) return; const P = E[per], n = P.dates.length;
         const lag = per === "m" ? 12 : 1, cut = rng ? Math.max(0, n - rng * (per === "m" ? 12 : 1)) : 0;
-        const ser = E.sectors.map((s, k) => ({ name: s.name, vals: P.vals[area + "|" + s.id] || [], color: cols[k], bold: k === 0 }));
+        const ser = mode === "cmp" ? picks.map((id, k) => ({ name: nameOf(id), vals: P.vals[id + "|" + sec] || [], color: CC[k % CC.length], bold: k === 0 }))
+          : E.sectors.map((s, k) => ({ name: s.name, vals: P.vals[one + "|" + s.id] || [], color: SC[k], bold: k === 0 }));
+        const t = $("#elTitle"); if (t) t.textContent = mode === "cmp" ? E.sectors.find(s => s.id === sec).name + " 전기요금 비교" : nameOf(one) + " 용도별 전기요금";
         const yoy = ser.map(s => ({ name: s.name, color: s.color, bold: s.bold, vals: s.vals.map((v, i) => i >= lag && v != null && s.vals[i - lag] ? +(100 * (v / s.vals[i - lag] - 1)).toFixed(1) : null) }));
         const sl = a => a.map(s => Object.assign({}, s, { vals: s.vals.slice(cut) })), ds = P.dates.slice(cut);
         el._chart.setOption(lineOption(ds, sl(ser), { unit: "(¢/kWh)", endLabel: true, dec: 2 }), true);
         ey._chart.setOption(lineOption(ds, sl(yoy).map((s, k) => Object.assign(s, { base: k === 0 ? 0.0001 : null })), { unit: "YoY(%)", suf: "%", endLabel: true, dec: 1 }), true); };
-      const fillStates = () => { const rr = E && E.regions.find(r => r.id === reg); sel.innerHTML = '<option value="">' + (reg === "US" ? "미국 전체" : "권역 전체") + "</option>"
-        + ((rr && rr.states) || []).map(x => `<option value="${x.id}">${x.name}</option>`).join(""); sel.disabled = !(rr && rr.states.length); st = ""; };
+      const setMode = () => { area.hidden = mode !== "one"; $("#elSec").style.display = mode === "cmp" ? "" : "none"; renderPicks(); draw(); };
       const load = () => { if (E || busy) return; busy = true;
-        fetch("assets/eia_price.json?v=" + (window.__ver || Date.now())).then(r => r.json()).then(j => { E = j; fillStates(); draw(); }).catch(() => { el.innerHTML = '<p class="note" style="padding:40px 0;text-align:center">데이터를 읽지 못했습니다</p>'; }); };
+        fetch("assets/eia_price.json?v=" + Date.now().toString().slice(0, -5)).then(r => r.json()).then(j => { E = j; area.innerHTML = options(); area.value = one; setMode(); })
+          .catch(() => { el.innerHTML = '<p class="note" style="padding:40px 0;text-align:center">데이터를 읽지 못했습니다</p>'; }); };
       lazy(el, () => { load(); draw(); }); lazy(ey, () => draw());
-      seg($("#elRegion"), v => { reg = v; fillStates(); draw(); });
+      seg($("#elMode"), v => { mode = v; setMode(); });
+      seg($("#elSec"), v => { sec = v; draw(); });
       seg($("#elPer"), v => { per = v; draw(); });
       seg($("#elRng"), v => { rng = +v; draw(); });
-      sel.addEventListener("change", () => { st = sel.value; draw(); }); })();
+      area.addEventListener("change", () => { one = area.value; draw(); }); })();
     // 수주 합산 (2026-10-14): 5개사 신규수주 / 수주잔고 누적 막대, 툴팁 맨 아래 합계
     const os = d.orders_sum;
     if (os) [["#ordSum", os.orders], ["#blSum", os.backlog]].forEach(([id, ser]) => { const el = $(id); if (!el || !ser.length) return;
