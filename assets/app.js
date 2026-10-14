@@ -380,7 +380,7 @@
 
   function lineOption(dates, series, o = {}) {
     return base({
-      tooltip: Object.assign(base().tooltip, { valueFormatter: v => v == null ? "-" : auto(v) + (o.suf || "") }),
+      tooltip: Object.assign(base().tooltip, { valueFormatter: v => v == null ? "-" : (o.dec != null ? fmt(v, o.dec) : auto(v)) + (o.suf || "") }),
       legend: Object.assign(base().legend, { type: "scroll", right: 0 }),
       grid: { left: 8, right: o.endLabel ? 46 : 8, top: 66, bottom: 8, containLabel: true },
       dataZoom: undefined,   // 범위 조절 막대 없음 (사용자 요청 2026-10-11)
@@ -388,7 +388,7 @@
       yAxis: yVal({ scale: true, name: o.unit || "" }),
       series: series.map((s, k) => ({ name: s.name, type: "line", data: s.vals, showSymbol: false, connectNulls: true, smooth: 0.15,
         lineStyle: { width: s.bold ? 3 : 2, type: s.dash ? "dashed" : "solid", color: s.color || PAL[k % PAL.length] }, itemStyle: { color: s.color || PAL[k % PAL.length] },
-        emphasis: { focus: "series" }, labelLayout: o.endLabel ? { moveOverlap: "shiftY" } : undefined, endLabel: o.endLabel ? { show: true, formatter: p => auto(p.value), color: s.color || PAL[k % PAL.length], fontSize: 11 } : undefined,
+        emphasis: { focus: "series" }, labelLayout: o.endLabel ? { moveOverlap: "shiftY" } : undefined, endLabel: o.endLabel ? { show: true, formatter: p => o.dec != null ? fmt(p.value, o.dec) : auto(p.value), color: s.color || PAL[k % PAL.length], fontSize: 11 } : undefined,
         markLine: s.base ? { silent: true, symbol: "none", data: [{ yAxis: s.base }], lineStyle: { color: "#c7c7cc", type: "dashed" }, label: { show: false } } : undefined })),
     });
   }
@@ -705,6 +705,28 @@
     seg($("#frSeg"), v => { fi = +v; drawFr(); });
     seg($("#frRange"), v => { frg = v; drawFr(); });
     toggleData($("#frData"), $("#frDataBox"), () => { const g = fr[fi]; dataTable($("#frDataBox"), ["날짜", ...g.series.map(s => s.name)], g.dates.map((x, i) => [x, ...g.series.map(s => s.vals[i])]).reverse(), "외국인보유율"); });
+    // 미국 전기요금 (EIA, 2026-10-14): 권역 → (주) → 용도 4개 선 + 전년 대비. 데이터는 탭을 열 때 assets/eia_price.json 에서
+    (() => { const el = $("#elChart"), ey = $("#elYoy"), sel = $("#elState"); if (!el) return;
+      let E = null, reg = "US", st = "", per = "m", rng = 5, busy = false;
+      const cols = ["#1d1d1f", "#ff9f0a", "#0071e3", "#34c759"];
+      const draw = () => { if (!E || !el._chart || !ey._chart) return; const P = E[per], area = st || reg, n = P.dates.length;
+        const rr = E.regions.find(r => r.id === reg), sn = st ? (rr.states.find(x => x.id === st) || {}).name : rr.name;
+        const t = $("#elTitle"); if (t) t.textContent = sn + " 전기요금";
+        const lag = per === "m" ? 12 : 1, cut = rng ? Math.max(0, n - rng * (per === "m" ? 12 : 1)) : 0;
+        const ser = E.sectors.map((s, k) => ({ name: s.name, vals: P.vals[area + "|" + s.id] || [], color: cols[k], bold: k === 0 }));
+        const yoy = ser.map(s => ({ name: s.name, color: s.color, bold: s.bold, vals: s.vals.map((v, i) => i >= lag && v != null && s.vals[i - lag] ? +(100 * (v / s.vals[i - lag] - 1)).toFixed(1) : null) }));
+        const sl = a => a.map(s => Object.assign({}, s, { vals: s.vals.slice(cut) })), ds = P.dates.slice(cut);
+        el._chart.setOption(lineOption(ds, sl(ser), { unit: "(¢/kWh)", endLabel: true, dec: 2 }), true);
+        ey._chart.setOption(lineOption(ds, sl(yoy).map((s, k) => Object.assign(s, { base: k === 0 ? 0.0001 : null })), { unit: "YoY(%)", suf: "%", endLabel: true, dec: 1 }), true); };
+      const fillStates = () => { const rr = E && E.regions.find(r => r.id === reg); sel.innerHTML = '<option value="">' + (reg === "US" ? "미국 전체" : "권역 전체") + "</option>"
+        + ((rr && rr.states) || []).map(x => `<option value="${x.id}">${x.name}</option>`).join(""); sel.disabled = !(rr && rr.states.length); st = ""; };
+      const load = () => { if (E || busy) return; busy = true;
+        fetch("assets/eia_price.json?v=" + (window.__ver || Date.now())).then(r => r.json()).then(j => { E = j; fillStates(); draw(); }).catch(() => { el.innerHTML = '<p class="note" style="padding:40px 0;text-align:center">데이터를 읽지 못했습니다</p>'; }); };
+      lazy(el, () => { load(); draw(); }); lazy(ey, () => draw());
+      seg($("#elRegion"), v => { reg = v; fillStates(); draw(); });
+      seg($("#elPer"), v => { per = v; draw(); });
+      seg($("#elRng"), v => { rng = +v; draw(); });
+      sel.addEventListener("change", () => { st = sel.value; draw(); }); })();
     // 수주 합산 (2026-10-14): 5개사 신규수주 / 수주잔고 누적 막대, 툴팁 맨 아래 합계
     const os = d.orders_sum;
     if (os) [["#ordSum", os.orders], ["#blSum", os.backlog]].forEach(([id, ser]) => { const el = $(id); if (!el || !ser.length) return;

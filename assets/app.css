@@ -592,3 +592,9 @@ table.t td:first-child{z-index:1}
   .ctl-row .seg:last-child{flex:1 1 auto}
 }
 @media (max-width:380px){.ctl-row{gap:12px}.ctl-row .seg{gap:10px!important}.ctl-row .seg button{font-size:14px!important}}
+
+/* 미국 전기요금 탭 (2026-10-14): 주 선택 + 월간/연간 + 시계열 한 줄 */
+.el-ctl{justify-content:flex-start;gap:12px}
+.el-sel{font:inherit;font-size:14px;padding:7px 30px 7px 12px;border-radius:10px;border:0;background:rgba(118,118,128,.12) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236e6e73' fill='none' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 11px center;-webkit-appearance:none;appearance:none;color:#1d1d1f;cursor:pointer}
+.el-sel:disabled{opacity:.5;cursor:default}
+@media (max-width:640px){.el-ctl{flex-wrap:wrap;row-gap:10px}.el-sel{width:100%}}
