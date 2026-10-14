@@ -435,7 +435,7 @@
       let rg = "3m";
       const draw = c => {
         const days = { "1m": 31, "3m": 92, "6m": 183, "1y": 366 }[rg];
-        const cut = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);
+        const cut = rg === "3m" && d.covrel.base3m ? d.covrel.base3m : new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);   // 3개월 = 산업 지표와 같은 기준일
         // 장중 주가(live.json)가 있으면 오늘 값을 마지막 점으로 붙임 (같은 날짜면 바꿔 씀)
         let D = d.covrel.dates, SER = d.covrel.series; const L = window.__live;
         if (L && L.at) { const day = L.at.slice(0, 10), last = D[D.length - 1];
