@@ -782,8 +782,6 @@
         const yy = a => a.map((v, i) => i >= lag && v != null && a[i - lag] ? +(100 * (v / a[i - lag] - 1)).toFixed(1) : null);
         const ys = [{ name: totName, vals: yy(totRaw).slice(cut), color: "#1d1d1f", bold: true, base: 0.0001 }].concat(comp.filter(c => !c.noYoy).map(c => ({ name: c.name, vals: yy(c.raw).slice(cut), color: c.id === "OTH" ? "#8e8e93" : c.color })));
         const oy = lineOption(ds, ys, { unit: "YoY(%)", suf: "%", endLabel: true, dec: 1 });
-        const on = mode === "cmp" ? ys.map((x, k) => k === 0 || ["PJM", "ERCOT"].includes((comp[k - 1] || {}).id) || comp.length <= 4) : ys.map(() => true);
-        oy.legend.selected = Object.fromEntries(ys.map((x, k) => [x.name, on[k]]));   // 지역 비교: 합계·PJM·ERCOT 만 처음에 켜짐
         ey._chart.setOption(oy, true); };
       const setMode = () => { $("#esAreaRow").classList.toggle("el-hide", mode !== "one"); $("#esSec").classList.toggle("el-hide", mode !== "cmp"); renderPicks(); draw(); };
       const load = () => { if (E || busy) return; busy = true;
