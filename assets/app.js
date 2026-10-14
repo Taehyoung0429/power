@@ -764,13 +764,12 @@
         let comp, totRaw, totName;
         if (mode === "cmp") {
           comp = picks.map(id => ({ id, name: nameOf(id), raw: V(id, sec), color: colorOf(id) }));
-          totRaw = ds.map((_, i) => { let t = 0, ok = false; comp.forEach(c => { const v = c.raw[cut + i]; if (v != null) { t += v; ok = true; } }); return ok ? t : null; });
-          totRaw = Array(cut).fill(null).concat(totRaw); totName = "선택 지역 합계";
+          totRaw = P.dates.map((_, i) => comp.some(c => c.raw[i] == null) ? null : comp.reduce((t, c) => t + c.raw[i], 0)); totName = "선택 지역 총량";
           $("#esTitle").textContent = (sec === "ALL" ? "" : E.sectors.find(x => x.id === sec).name + " ") + "전기 사용량 비교";
         } else {
           const all = V(one, "ALL"), parts = ["RES", "COM", "IND"].map(s => ({ id: s, name: E.sectors.find(x => x.id === s).name, raw: V(one, s), color: SC[s] }));
-          const oth = all.map((v, i) => v == null ? null : Math.max(0, v - parts.reduce((t, p) => t + (p.raw[i] || 0), 0)));
-          comp = parts.concat([{ id: "OTH", name: "기타 (수송 등)", raw: oth, color: SC.OTH }]); totRaw = all; totName = nameOf(one) + " 전체";
+          const oth = all.map((v, i) => v == null || parts.some(p => p.raw[i] == null) ? null : Math.max(0, v - parts.reduce((t, p) => t + p.raw[i], 0)));
+          comp = parts.concat([{ id: "OTH", name: "기타 (수송 등)", raw: oth, color: SC.OTH, noYoy: true }]); totRaw = all; totName = nameOf(one) + " 전체";   // 기타는 아주 작아 전년 대비가 튐 → 오른쪽에선 뺌
           $("#esTitle").textContent = nameOf(one) + " 용도별 전기 사용량";
         }
         const T = tw(totRaw).slice(cut);
@@ -781,7 +780,7 @@
           + `<div style="border-top:1px solid #e5e5ea;margin-top:4px;padding-top:4px">합계 <b style="float:right;margin-left:16px">${T[i] == null ? "-" : fmt(T[i], 1)} TWh</b></div>`; } });
         el._chart.setOption(o, true);
         const yy = a => a.map((v, i) => i >= lag && v != null && a[i - lag] ? +(100 * (v / a[i - lag] - 1)).toFixed(1) : null);
-        const ys = [{ name: totName, vals: yy(totRaw).slice(cut), color: "#1d1d1f", bold: true, base: 0.0001 }].concat(comp.map(c => ({ name: c.name, vals: yy(c.raw).slice(cut), color: c.id === "OTH" ? "#8e8e93" : c.color })));
+        const ys = [{ name: totName, vals: yy(totRaw).slice(cut), color: "#1d1d1f", bold: true, base: 0.0001 }].concat(comp.filter(c => !c.noYoy).map(c => ({ name: c.name, vals: yy(c.raw).slice(cut), color: c.id === "OTH" ? "#8e8e93" : c.color })));
         const oy = lineOption(ds, ys, { unit: "YoY(%)", suf: "%", endLabel: true, dec: 1 });
         const on = mode === "cmp" ? ys.map((x, k) => k === 0 || ["PJM", "ERCOT"].includes((comp[k - 1] || {}).id) || comp.length <= 4) : ys.map(() => true);
         oy.legend.selected = Object.fromEntries(ys.map((x, k) => [x.name, on[k]]));   // 지역 비교: 합계·PJM·ERCOT 만 처음에 켜짐
