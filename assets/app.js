@@ -708,7 +708,7 @@
     // 미국 전기요금 (EIA, 2026-10-14): '지역 비교' = 용도 하나로 여러 지역 선 / '지역별 용도' = 한 지역의 용도 4개 선. 오른쪽은 전년 대비.
     // 데이터는 탭을 열 때 assets/eia_price.json 에서 (ERCOT·PJM 은 주 묶음 근사)
     (() => { const el = $("#elChart"), ey = $("#elYoy"), area = $("#elArea"), picksBox = $("#elPicks"); if (!el) return;
-      let E = null, mode = "cmp", one = "US", sec = "ALL", per = "m", rng = 5, picks = ["US", "PJM", "ERCOT", "MISO", "SPP", "CAISO", "NYISO", "ISONE", "SE", "NW", "SW"], busy = false;   // 처음엔 미국 전체 + ISO/RTO 10개 모두 (사용자 요청)
+      let E = null, mode = "cmp", one = "US", sec = "ALL", per = "m", rng = 5, picks = ["US", "PJM", "ERCOT"], busy = false;   // 처음엔 미국 전체·PJM·ERCOT (사용자 지정)
       const SC = ["#1d1d1f", "#ff9f0a", "#0071e3", "#34c759"], CC = ["#1d1d1f", "#0071e3", "#ff375f", "#ff9f0a", "#34c759", "#af52de", "#5ac8fa", "#a2845e", "#8e8e93", "#30b0c7", "#ffcc00", "#5856d6", "#ff6b81", "#64d2a0", "#c7a17a"];
       const nameOf = id => { if (!E) return id; const g = E.iso.find(x => x.id === id) || E.regions.find(x => x.id === id); if (g) return g.name;
         for (const r of E.regions) { const s = (r.states || []).find(x => x.id === id); if (s) return s.name; } return id; };
