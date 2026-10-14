@@ -729,7 +729,7 @@
         const sl = a => a.map(s => Object.assign({}, s, { vals: s.vals.slice(cut) })), ds = P.dates.slice(cut);
         el._chart.setOption(lineOption(ds, sl(ser), { unit: "(¢/kWh)", endLabel: true, dec: 2 }), true);
         ey._chart.setOption(lineOption(ds, sl(yoy).map((s, k) => Object.assign(s, { base: k === 0 ? 0.0001 : null })), { unit: "YoY(%)", suf: "%", endLabel: true, dec: 1 }), true); };
-      const setMode = () => { area.hidden = mode !== "one"; $("#elSec").style.display = mode === "cmp" ? "" : "none"; renderPicks(); draw(); };
+      const setMode = () => { $("#elAreaRow").classList.toggle("el-hide", mode !== "one"); $("#elSec").classList.toggle("el-hide", mode !== "cmp"); renderPicks(); draw(); };
       const load = () => { if (E || busy) return; busy = true;
         fetch("assets/eia_price.json?v=" + Date.now().toString().slice(0, -5)).then(r => r.json()).then(j => { E = j; area.innerHTML = options(); area.value = one; setMode(); })
           .catch(() => { el.innerHTML = '<p class="note" style="padding:40px 0;text-align:center">데이터를 읽지 못했습니다</p>'; }); };
