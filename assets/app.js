@@ -714,7 +714,7 @@
         for (const r of E.regions) { const s = (r.states || []).find(x => x.id === id); if (s) return s.name; } return id; };
       const options = (skip = []) => { const o = (lab, arr) => { const it = arr.filter(x => !skip.includes(x.id)); return it.length ? `<optgroup label="${lab}">` + it.map(x => `<option value="${x.id}">${x.name}</option>`).join("") + "</optgroup>" : ""; };
         const states = E.regions.flatMap(r => r.states || []).sort((a, b) => a.name.localeCompare(b.name));
-        return o("전력시장 (근사)", E.iso) + o("미국·권역", E.regions.map(r => ({ id: r.id, name: r.name }))) + o("주", states); };
+        return o("미국", [{ id: "US", name: "미국 전체" }]) + o("ISO/RTO (주 단위 근사)", E.iso) + o("주", states); };
       const renderPicks = () => { if (mode !== "cmp" || !E) { picksBox.innerHTML = ""; return; }
         picksBox.innerHTML = picks.map((id, k) => `<span class="el-chip"><i style="background:${CC[k % CC.length]}"></i>${nameOf(id)}${picks.length > 1 ? `<b data-x="${id}">×</b>` : ""}</span>`).join("")
           + `<select class="el-sel el-add"><option value="">+ 지역 추가</option>${options(picks)}</select>`;
