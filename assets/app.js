@@ -358,7 +358,7 @@
   window.revOption = revOption;
 
   function flowOption(f, range) {
-    let n = range === "all" ? f.dates.length : ({ "1m": 21, "3m": 63, "6m": 126, "1y": 240, "3y": 740, "5y": 1240 }[range] || 63);
+    let n = range === "all" ? f.dates.length : ({ "1m": 21, "3m": 63, "6m": 126, "1y": 240, "3y": 740 }[range] || 63);
     const s = Math.max(0, f.dates.length - n);
     const D = f.dates.slice(s), fo = f.foreign.slice(s), og = f.organ.slice(s), iv = (f.individual || []).slice(s);
     const cum = a => { let t = 0; return a.map(v => +(t += v || 0).toFixed(1)); };
@@ -627,7 +627,7 @@
     const fl = $("#chFlow");
     if (fl && d.flows) {
       let rg = "3m";
-      const LAB = { "1m": "1개월", "3m": "3개월", "6m": "6개월", "1y": "1년", "3y": "3년", "5y": "5년" }, N = { "1m": 21, "3m": 63, "6m": 126, "1y": 240, "3y": 740, "5y": 1240 };
+      const LAB = { "1m": "1개월", "3m": "3개월", "6m": "6개월", "1y": "1년", "3y": "3년", "all": "전체 기간" }, N = { "1m": 21, "3m": 63, "6m": 126, "1y": 240, "3y": 740, "all": 1e9 };
       const stats = () => {   // 고른 기간의 순매수 합계만 표시
         const n = N[rg], f = d.flows, sum = a => (a || []).slice(-n).reduce((t, v) => t + (v || 0), 0);
         $("#flowStats").innerHTML = [["외국인", f.foreign], ["기관", f.organ], ["개인", f.individual]].map(([k, a]) => {
@@ -643,7 +643,7 @@
     if (cEls.foreign && d.flows) {
       let crg = "3y";
       const NM = { foreign: "외국인", organ: "기관", individual: "개인" }, CL = { foreign: "#0071e3", organ: "#ff9f0a", individual: "#34c759" };
-      const N2 = { "1m": 21, "3m": 63, "6m": 126, "1y": 240, "3y": 740, "5y": 1240 };
+      const N2 = { "1m": 21, "3m": 63, "6m": 126, "1y": 240, "3y": 740, "all": 1e9 };
       const calc = () => { const f = d.flows, n = Math.min(N2[crg], f.dates.length), s0 = f.dates.length - n;
         const px = f.price.slice(s0), lo = Math.min(...px.filter(Boolean)) * 0.98, hi = Math.max(...px.filter(Boolean)) * 1.02, B = 16, w = (hi - lo) / B;
         const out = { lo, hi, w, B, cur: px[px.length - 1], from: f.dates[s0], to: f.dates[f.dates.length - 1] };
