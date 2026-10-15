@@ -658,8 +658,8 @@
         return out; };
       const opt = (k, R) => { const x = R[k], lim = Math.max(1, ...["foreign", "organ", "individual"].flatMap(kk => R[kk].bins.map(Math.abs))) / 1e3 * 1.1;
         const data = x.bins.map((v, i) => [v / 1e3, (R.lo + i * R.w) / 1e4, (R.lo + (i + 1) * R.w) / 1e4]);
-        const ml = [{ yAxis: R.cur / 1e4, lineStyle: { color: "#ff375f", type: "dashed", width: 1.2 }, label: { formatter: `현재가 ${fmt(R.cur / 1e4, 0)}만`, color: "#ff375f", position: "insideEndTop", fontSize: 10 } }];
-        if (x.avg) ml.push({ yAxis: x.avg / 1e4, lineStyle: { color: CL[k], type: [6, 3], width: 2 }, label: { formatter: `평단 ${fmt(x.avg / 1e4, 0)}만 (${fmt(x.left / 1e3, 0)}천주)`, color: CL[k], fontWeight: 700, position: "insideStartTop", fontSize: 10.5 } });
+        const ml = [{ yAxis: R.cur / 1e4, lineStyle: { color: "#ff375f", type: "dashed", width: 1.2 }, label: { formatter: `현재가 ${fmt(R.cur / 1e4, 0)}만`, color: "#ff375f", position: "insideEndTop", fontSize: 10, backgroundColor: "rgba(255,255,255,.92)", padding: [1, 4], borderRadius: 4 } }];
+        if (x.avg) ml.push({ yAxis: x.avg / 1e4, lineStyle: { color: CL[k], type: [6, 3], width: 2 }, label: { formatter: `평단 ${fmt(x.avg / 1e4, 0)}만 (${fmt(x.left / 1e3, 0)}천주)`, color: CL[k], fontWeight: 700, position: "insideStartTop", fontSize: 10.5, backgroundColor: "rgba(255,255,255,.92)", padding: [2, 5], borderRadius: 4 } });
         return { animationDuration: 600, noAlign: true,
           title: { text: `${NM[k]}  ${x.sum >= 0 ? "+" : ""}${fmt(x.sum / 1e3, 0)}천주` + (x.avg ? "" : "  · 평단 없음"), left: 0, top: 0, textStyle: { fontSize: 13, fontWeight: 600, color: getComputedStyle(document.body).color } },
           grid: { left: 44, right: 12, top: 34, bottom: 28 },
@@ -868,8 +868,8 @@
         R[k] = { bins, sum, avg: leftV > 1e8 ? leftW / leftV : null, left: leftV / 1e8 }; });
       const lim = Math.max(1, ...Object.values(R).flatMap(x => x.bins.map(Math.abs))) * 1.1;
       Object.entries(sfC).forEach(([k, el]) => { if (!el._chart) return; const x = R[k];
-        const ml = [{ yAxis: 0, lineStyle: { color: "#ff375f", type: "dashed", width: 1.2 }, label: { formatter: "현재가", color: "#ff375f", position: "insideEndTop", fontSize: 10 } }];
-        if (x.avg != null) ml.push({ yAxis: x.avg, lineStyle: { color: CL[k], type: [6, 3], width: 2 }, label: { formatter: `평단 현재가 대비 ${x.avg >= 0 ? "+" : ""}${fmt(x.avg, 0)}% (${fmt(x.left, 0)}억 남음)`, color: CL[k], fontWeight: 700, position: "insideStartTop", fontSize: 10.5 } });
+        const ml = [{ yAxis: 0, lineStyle: { color: "#ff375f", type: "dashed", width: 1.2 }, label: { formatter: "현재가", color: "#ff375f", position: "insideEndTop", fontSize: 10, backgroundColor: "rgba(255,255,255,.92)", padding: [1, 4], borderRadius: 4 } }];
+        if (x.avg != null) ml.push({ yAxis: x.avg, lineStyle: { color: CL[k], type: [6, 3], width: 2 }, label: { formatter: `평단 현재가 대비 ${x.avg >= 0 ? "+" : ""}${fmt(x.avg, 0)}% (${fmt(x.left, 0)}억 남음)`, color: CL[k], fontWeight: 700, position: "insideStartTop", fontSize: 10.5, backgroundColor: "rgba(255,255,255,.92)", padding: [2, 5], borderRadius: 4 } });
         el._chart.setOption({ animationDuration: 600, noAlign: true,
           title: { text: `${NM[k]}  ${x.sum >= 0 ? "+" : ""}${fmt(x.sum, 0)}억` + (x.avg == null ? "  · 평단 없음" : ""), left: 0, top: 0, textStyle: { fontSize: 13, fontWeight: 600, color: getComputedStyle(document.body).color } },
           grid: { left: 44, right: 12, top: 34, bottom: 28 },
