@@ -358,7 +358,7 @@
   window.revOption = revOption;
 
   function flowOption(f, range) {
-    let n = range === "all" ? f.dates.length : ({ "1m": 21, "3m": 63, "6m": 126, "1y": 240 }[range] || 63);
+    let n = range === "all" ? f.dates.length : ({ "1m": 21, "3m": 63, "6m": 126, "1y": 240, "3y": 740, "5y": 1240 }[range] || 63);
     const s = Math.max(0, f.dates.length - n);
     const D = f.dates.slice(s), fo = f.foreign.slice(s), og = f.organ.slice(s), iv = (f.individual || []).slice(s);
     const cum = a => { let t = 0; return a.map(v => +(t += v || 0).toFixed(1)); };
@@ -627,7 +627,7 @@
     const fl = $("#chFlow");
     if (fl && d.flows) {
       let rg = "3m";
-      const LAB = { "1m": "1개월", "3m": "3개월", "6m": "6개월", "1y": "1년" }, N = { "1m": 21, "3m": 63, "6m": 126, "1y": 240 };
+      const LAB = { "1m": "1개월", "3m": "3개월", "6m": "6개월", "1y": "1년", "3y": "3년", "5y": "5년" }, N = { "1m": 21, "3m": 63, "6m": 126, "1y": 240, "3y": 740, "5y": 1240 };
       const stats = () => {   // 고른 기간의 순매수 합계만 표시
         const n = N[rg], f = d.flows, sum = a => (a || []).slice(-n).reduce((t, v) => t + (v || 0), 0);
         $("#flowStats").innerHTML = [["외국인", f.foreign], ["기관", f.organ], ["개인", f.individual]].map(([k, a]) => {
@@ -637,6 +637,42 @@
       stats();
       lazy(fl, c => c.setOption(flowOption(d.flows, rg), true));
       seg($("#flowSeg"), v => { rg = v; stats(); fl._chart && fl._chart.setOption(flowOption(d.flows, rg), true); });
+    }
+    // 가격대별 매물 (2026-10-15): 고른 기간의 투자자별 순매수(주)를 그날 종가 가격대에 합산 + 남은 물량 평단 (비례 차감)
+    const cEls = { foreign: $("#chCostF"), organ: $("#chCostO"), individual: $("#chCostI") };
+    if (cEls.foreign && d.flows) {
+      let crg = "3y";
+      const NM = { foreign: "외국인", organ: "기관", individual: "개인" }, CL = { foreign: "#0071e3", organ: "#ff9f0a", individual: "#34c759" };
+      const N2 = { "1m": 21, "3m": 63, "6m": 126, "1y": 240, "3y": 740, "5y": 1240 };
+      const calc = () => { const f = d.flows, n = Math.min(N2[crg], f.dates.length), s0 = f.dates.length - n;
+        const px = f.price.slice(s0), lo = Math.min(...px.filter(Boolean)) * 0.98, hi = Math.max(...px.filter(Boolean)) * 1.02, B = 16, w = (hi - lo) / B;
+        const out = { lo, hi, w, B, cur: px[px.length - 1], from: f.dates[s0], to: f.dates[f.dates.length - 1] };
+        ["foreign", "organ", "individual"].forEach(k => {
+          const sh = f[k].slice(s0).map((v, i) => px[i] ? (v || 0) * 1e8 / px[i] : 0), bins = Array(B).fill(0);
+          let lots = new Map();
+          sh.forEach((q, i) => { const p = px[i]; if (!p) return; bins[Math.min(B - 1, Math.floor((p - lo) / w))] += q;
+            if (q > 0) lots.set(p, (lots.get(p) || 0) + q);
+            else if (q < 0) { let tot = 0; lots.forEach(v => tot += v); if (tot > 0) { const r = 1 - Math.min(-q, tot) / tot; lots.forEach((v, kk) => lots.set(kk, v * r)); } } });
+          let tot = 0, amt = 0; lots.forEach((v, p) => { tot += v; amt += v * p; });
+          out[k] = { bins, avg: tot > 1 ? amt / tot : null, left: tot, sum: sh.reduce((a, b) => a + b, 0) }; });
+        return out; };
+      const opt = (k, R) => { const x = R[k], lim = Math.max(1, ...["foreign", "organ", "individual"].flatMap(kk => R[kk].bins.map(Math.abs))) / 1e3 * 1.1;
+        const data = x.bins.map((v, i) => [v / 1e3, (R.lo + i * R.w) / 1e4, (R.lo + (i + 1) * R.w) / 1e4]);
+        const ml = [{ yAxis: R.cur / 1e4, lineStyle: { color: "#ff375f", type: "dashed", width: 1.2 }, label: { formatter: `현재가 ${fmt(R.cur / 1e4, 0)}만`, color: "#ff375f", position: "insideEndTop", fontSize: 10 } }];
+        if (x.avg) ml.push({ yAxis: x.avg / 1e4, lineStyle: { color: CL[k], type: [6, 3], width: 2 }, label: { formatter: `평단 ${fmt(x.avg / 1e4, 0)}만 (${fmt(x.left / 1e3, 0)}천주)`, color: CL[k], fontWeight: 700, position: "insideStartTop", fontSize: 10.5 } });
+        return { animationDuration: 600, noAlign: true,
+          title: { text: `${NM[k]}  ${x.sum >= 0 ? "+" : ""}${fmt(x.sum / 1e3, 0)}천주` + (x.avg ? "" : "  · 평단 없음"), left: 0, top: 0, textStyle: { fontSize: 13, fontWeight: 600, color: getComputedStyle(document.body).color } },
+          grid: { left: 44, right: 12, top: 34, bottom: 28 },
+          tooltip: { trigger: "item", formatter: p => `${fmt(p.value[1], 0)}~${fmt(p.value[2], 0)}만원<br>${NM[k]} 순매수 <b>${fmt(p.value[0], 1)}천주</b>` },
+          xAxis: { type: "value", min: -lim, max: lim, axisLabel: { color: "#86868b", fontSize: 10, formatter: v => fmt(v, 0) }, splitLine: { lineStyle: { color: "#f0f0f2" } } },
+          yAxis: { type: "value", min: R.lo / 1e4, max: R.hi / 1e4, axisLabel: { color: "#86868b", fontSize: 10, formatter: v => fmt(v, 0) }, splitLine: { lineStyle: { color: "#f0f0f2" } } },
+          series: [{ type: "custom", renderItem: (params, api) => { const a = api.coord([0, api.value(1)]), b = api.coord([api.value(0), api.value(2)]), gap = 1.5;
+              return { type: "rect", shape: { x: Math.min(a[0], b[0]), y: b[1] + gap, width: Math.abs(b[0] - a[0]), height: Math.max(0, a[1] - b[1] - gap * 2) }, style: { fill: CL[k] } }; },
+            encode: { x: 0, y: [1, 2] }, data, markLine: { silent: true, symbol: "none", data: ml } },
+            { type: "line", data: [[0, R.lo / 1e4], [0, R.hi / 1e4]], symbol: "none", lineStyle: { color: "#86868b", width: 0.8 }, silent: true }] }; };
+      const drawC = () => { const R = calc(); Object.entries(cEls).forEach(([k, el]) => el._chart && el._chart.setOption(opt(k, R), true)); };
+      Object.values(cEls).forEach(el => lazy(el, () => drawC()));
+      seg($("#costSeg"), v => { crg = v; drawC(); });
     }
   };
   P.indicators = d => {
