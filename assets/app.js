@@ -848,7 +848,40 @@
       $("#sfStats").innerHTML = [["외국인", g.foreign], ["기관", g.organ], ["개인", g.individual]].map(([k, a]) => { const v = sum(a);
         return `<div class="kpi"><div class="l">${g.group} ${k} ${LAB} 순매수</div><div class="v ${v > 0 ? "up" : v < 0 ? "down" : ""}" style="font-size:24px">${v > 0 ? "+" : ""}${fmt(v, 0)}억</div></div>`; }).join("");
       $("#sfNote").textContent = "합산 기업: " + g.companies.join(", ") + " · 순매수 주식수 × 그날 종가"; };
-    const drawSf = () => { const g = sf[si]; if (!g || !sfEl._chart) return; sfEl._chart.setOption(flowOption(g, srg), true); };
+    // 섹터 가격대별 매물 (2026-10-15): 기업별 순매수(억원)를 '그날 종가가 현재가 대비 몇 %였나' 구간에 모아 합산. 평단도 현재가 대비 %
+    const sfC = { foreign: $("#sfCostF"), organ: $("#sfCostO"), individual: $("#sfCostI") };
+    const drawSfCost = () => { const g = sf[si]; if (!g || !g.per || !sfC.foreign) return;
+      const n = srg === "all" ? g.dates.length : Math.min({ "1m": 21, "3m": 63, "6m": 126, "1y": 240 }[srg], g.dates.length), s0 = g.dates.length - n;
+      const NM = { foreign: "외국인", organ: "기관", individual: "개인" }, CL = { foreign: "#0071e3", organ: "#ff9f0a", individual: "#34c759" };
+      const comps = g.per.map(c => { const px = c.price.slice(s0), cur = [...px].reverse().find(Boolean); return { c, px, cur }; }).filter(x => x.cur);
+      const rels = comps.flatMap(x => x.px.filter(Boolean).map(p => (p / x.cur - 1) * 100));
+      if (!rels.length) return;
+      const lo = Math.min(...rels) - 2, hi = Math.max(...rels) + 2, B = 16, w = (hi - lo) / B;
+      const R = {};
+      ["foreign", "organ", "individual"].forEach(k => { const bins = Array(B).fill(0); let sum = 0, leftV = 0, leftW = 0;
+        comps.forEach(({ c, px, cur }) => { const lots = new Map();
+          c[k].slice(s0).forEach((v, i) => { const p = px[i]; if (!p || v == null) return; const rel = (p / cur - 1) * 100; bins[Math.min(B - 1, Math.max(0, Math.floor((rel - lo) / w)))] += v; sum += v;
+            const q = v * 1e8 / p;
+            if (q > 0) lots.set(p, (lots.get(p) || 0) + q);
+            else if (q < 0) { let tot = 0; lots.forEach(x => tot += x); if (tot > 0) { const r = 1 - Math.min(-q, tot) / tot; lots.forEach((x, kk) => lots.set(kk, x * r)); } } });
+          lots.forEach((q, p) => { const val = q * cur; leftV += val; leftW += val * (p / cur - 1) * 100; }); });
+        R[k] = { bins, sum, avg: leftV > 1e8 ? leftW / leftV : null, left: leftV / 1e8 }; });
+      const lim = Math.max(1, ...Object.values(R).flatMap(x => x.bins.map(Math.abs))) * 1.1;
+      Object.entries(sfC).forEach(([k, el]) => { if (!el._chart) return; const x = R[k];
+        const ml = [{ yAxis: 0, lineStyle: { color: "#ff375f", type: "dashed", width: 1.2 }, label: { formatter: "현재가", color: "#ff375f", position: "insideEndTop", fontSize: 10 } }];
+        if (x.avg != null) ml.push({ yAxis: x.avg, lineStyle: { color: CL[k], type: [6, 3], width: 2 }, label: { formatter: `평단 현재가 대비 ${x.avg >= 0 ? "+" : ""}${fmt(x.avg, 0)}% (${fmt(x.left, 0)}억 남음)`, color: CL[k], fontWeight: 700, position: "insideStartTop", fontSize: 10.5 } });
+        el._chart.setOption({ animationDuration: 600, noAlign: true,
+          title: { text: `${NM[k]}  ${x.sum >= 0 ? "+" : ""}${fmt(x.sum, 0)}억` + (x.avg == null ? "  · 평단 없음" : ""), left: 0, top: 0, textStyle: { fontSize: 13, fontWeight: 600, color: getComputedStyle(document.body).color } },
+          grid: { left: 44, right: 12, top: 34, bottom: 28 },
+          tooltip: { trigger: "item", formatter: p => `현재가 대비 ${fmt(p.value[1], 0)}~${fmt(p.value[2], 0)}%<br>${NM[k]} 순매수 <b>${fmt(p.value[0], 0)}억</b>` },
+          xAxis: { type: "value", min: -lim, max: lim, axisLabel: { color: "#86868b", fontSize: 10, formatter: v => fmt(v, 0) }, splitLine: { lineStyle: { color: "#f0f0f2" } } },
+          yAxis: { type: "value", min: lo, max: hi, axisLabel: { color: "#86868b", fontSize: 10, formatter: v => fmt(v, 0) + "%" }, splitLine: { lineStyle: { color: "#f0f0f2" } } },
+          series: [{ type: "custom", renderItem: (params, api) => { const a = api.coord([0, api.value(1)]), b = api.coord([api.value(0), api.value(2)]), gap = 1.5;
+              return { type: "rect", shape: { x: Math.min(a[0], b[0]), y: b[1] + gap, width: Math.abs(b[0] - a[0]), height: Math.max(0, a[1] - b[1] - gap * 2) }, style: { fill: CL[k] } }; },
+            encode: { x: 0, y: [1, 2] }, data: x.bins.map((v, i) => [v, lo + i * w, lo + (i + 1) * w]), markLine: { silent: true, symbol: "none", data: ml } },
+            { type: "line", data: [[0, lo], [0, hi]], symbol: "none", lineStyle: { color: "#86868b", width: 0.8 }, silent: true }] }, true); }); };
+    Object.values(sfC).forEach(el => el && lazy(el, () => drawSfCost()));
+    const drawSf = () => { const g = sf[si]; drawSfCost(); if (!g || !sfEl._chart) return; sfEl._chart.setOption(flowOption(g, srg), true); };
     if (sfEl && sf.length) { lazy(sfEl, () => drawSf()); sfStats(); }
     seg($("#sfSeg"), v => { si = +v; drawSf(); sfStats(); });
     seg($("#sfRange"), v => { srg = v; drawSf(); sfStats(); });
