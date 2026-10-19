@@ -73,6 +73,10 @@
     return { set: v => { const b = btns.find(x => x.dataset.v === v); if (b) pick(b); } };
   }
   window.seg = seg;
+  // 산업 지표 메뉴: PC 화면에서 한 줄에 안 들어가면 두 줄로 (2026-10-19, 휴대폰은 밑줄 탭 그대로)
+  const fitTabs = () => { const t = document.getElementById("indTabs"); if (!t) return; t.classList.remove("wrap");
+    if (innerWidth > 640 && t.scrollWidth > t.clientWidth + 1) t.classList.add("wrap"); };
+  fitTabs(); window.addEventListener("resize", fitTabs); document.fonts && document.fonts.ready.then(fitTabs);
   function tabs(root, panelsRoot, onChange, useHash) {
     const btns = $$("button", root);
     const show = (v, fire = true) => {
@@ -830,6 +834,22 @@
       seg($("#esPer"), v => { per = v; draw(); });
       seg($("#esRng"), v => { rng = +v; draw(); });
       area.addEventListener("change", () => { one = area.value; draw(); }); })();
+    // 전력기기 실적 합산 (2026-10-19): 기업별(지정 부문) 매출·영업이익 누적 막대, 추정치는 흐리게, 툴팁에 합계
+    (() => { const E = d.earn_sum; if (!E || !$("#earnSales")) return; let per = "q";
+      const cols = ["#1d1d1f", "#0071e3", "#ff9f0a", "#34c759", "#af52de"];
+      const draw = () => [["#earnSales", "sales"], ["#earnOp", "op"]].forEach(([id, key]) => { const el = $(id); if (!el || !el._chart) return; const P = E[per], ser = P[key];
+        const fcStart = P.fc.indexOf(true);
+        el._chart.setOption(base({ legend: Object.assign(base().legend, { data: ser.map(x => x.name) }), noAlign: true,
+          tooltip: Object.assign(base().tooltip, { axisPointer: { type: "shadow" }, formatter: ps => { const i = ps[0].dataIndex, tot = ser.reduce((t, x) => t + (x.vals[i] || 0), 0);
+            return `<b>${P.labels[i]}${P.fc[i] ? "F" : ""}</b><br>` + ps.map(p => `${p.marker} ${p.seriesName} <b style="float:right;margin-left:16px">${p.value == null ? "-" : fmt(p.value, 0)}</b>`).join("<br>")
+              + `<div style="border-top:1px solid #e5e5ea;margin-top:4px;padding-top:4px">합계 <b style="float:right;margin-left:16px">${fmt(tot, 0)}</b></div>`; } }),
+          xAxis: xCat(P.labels.map((l, i) => l + (P.fc[i] ? "F" : ""))), yAxis: yVal({ name: "(십억원)" }),
+          series: ser.map((x, k) => ({ name: x.name, type: "bar", stack: "s", barMaxWidth: 26, itemStyle: { color: cols[k % cols.length] },
+            data: x.vals.map((v, i) => ({ value: v, itemStyle: P.fc[i] ? { opacity: 0.45 } : undefined })),
+            markArea: k === 0 && fcStart >= 0 ? { silent: true, itemStyle: { color: "rgba(0,113,227,.05)" }, label: { show: true, position: "insideTop", color: "#86868b", fontSize: 10 },
+              data: [[{ name: "추정", xAxis: fcStart }, { xAxis: P.labels.length - 1 }]] } : undefined })) }), true); });
+      ["#earnSales", "#earnOp"].forEach(id => lazy($(id), () => draw()));
+      seg($("#earnSeg"), v => { per = v; draw(); }); })();
     // 수주 합산 (2026-10-14): 5개사 신규수주 / 수주잔고 누적 막대, 툴팁 맨 아래 합계
     const os = d.orders_sum;
     if (os) [["#ordSum", os.orders], ["#blSum", os.backlog]].forEach(([id, ser]) => { const el = $(id); if (!el || !ser.length) return;
