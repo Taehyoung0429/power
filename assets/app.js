@@ -841,17 +841,26 @@
     // 전력기기 실적 합산 (2026-10-19): 기업별(지정 부문) 매출·영업이익 누적 막대, 추정치는 흐리게, 툴팁에 합계
     (() => { const E = d.earn_sum; if (!E || !$("#earnSales")) return; let per = "q";
       const cols = ["#1d1d1f", "#0071e3", "#ff9f0a", "#34c759", "#af52de"];
+      // 합산 영업이익률 (사용자 요청 2026-10-19): 위 기준(부문 매출·이익)의 영업이익 합 ÷ 매출액 합. 그 기간에 매출·이익이 둘 다 있는 기업만
+      const opm = P => P.labels.map((_, i) => { let s = 0, o = 0;
+        P.sales.forEach(x => { const y = P.op.find(z => z.name === x.name), sv = x.vals[i], ov = y && y.vals[i]; if (sv != null && ov != null) { s += sv; o += ov; } });
+        return s > 0 ? Math.round(o / s * 1000) / 10 : null; });
       const draw = () => [["#earnSales", "sales"], ["#earnOp", "op"]].forEach(([id, key]) => { const el = $(id); if (!el || !el._chart) return; const P = E[per], ser = P[key];
-        const fcStart = P.fc.indexOf(true);
-        el._chart.setOption(base({ legend: Object.assign(base().legend, { data: ser.map(x => x.name) }), noAlign: true,
+        const fcStart = P.fc.indexOf(true), M = key === "op" ? opm(P) : null;
+        el._chart.setOption(base({ legend: Object.assign(base().legend, { data: ser.map(x => x.name).concat(M ? ["영업이익률(R)"] : []) }), noAlign: true,
           tooltip: Object.assign(base().tooltip, { axisPointer: { type: "shadow" }, formatter: ps => { const i = ps[0].dataIndex, tot = ser.reduce((t, x) => t + (x.vals[i] || 0), 0);
-            return `<b>${P.labels[i]}${P.fc[i] ? "F" : ""}</b><br>` + ps.map(p => `${p.marker} ${p.seriesName} <b style="float:right;margin-left:16px">${p.value == null ? "-" : fmt(p.value, 0)}</b>`).join("<br>")
-              + `<div style="border-top:1px solid #e5e5ea;margin-top:4px;padding-top:4px">합계 <b style="float:right;margin-left:16px">${fmt(tot, 0)}</b></div>`; } }),
-          xAxis: xCat(P.labels.map((l, i) => l + (P.fc[i] ? "F" : ""))), yAxis: yVal({ name: "(십억원)" }),
+            return `<b>${P.labels[i]}${P.fc[i] ? "F" : ""}</b><br>` + ps.filter(p => p.seriesName !== "영업이익률(R)").map(p => `${p.marker} ${p.seriesName} <b style="float:right;margin-left:16px">${p.value == null ? "-" : fmt(p.value, 0)}</b>`).join("<br>")
+              + `<div style="border-top:1px solid #e5e5ea;margin-top:4px;padding-top:4px">합계 <b style="float:right;margin-left:16px">${fmt(tot, 0)}</b></div>`
+              + (M && M[i] != null ? `<div>영업이익률 <b style="float:right;margin-left:16px">${fmt(M[i], 1)}%</b></div>` : ""); } }),
+          xAxis: xCat(P.labels.map((l, i) => l + (P.fc[i] ? "F" : ""))),
+          yAxis: M ? [yVal({ name: "(십억원)" }), yVal({ name: "(%)", min: v => Math.min(0, Math.floor(v.min / 5) * 5), splitLine: { show: false }, axisLabel: { color: "#ff375f", fontSize: 11 } })] : yVal({ name: "(십억원)" }),
           series: ser.map((x, k) => ({ name: x.name, type: "bar", stack: "s", barMaxWidth: 26, itemStyle: { color: cols[k % cols.length] },
             data: x.vals.map((v, i) => ({ value: v, itemStyle: P.fc[i] ? { opacity: 0.45 } : undefined })),
             markArea: k === 0 && fcStart >= 0 ? { silent: true, itemStyle: { color: "rgba(0,113,227,.05)" }, label: { show: true, position: "insideTop", color: "#86868b", fontSize: 10 },
-              data: [[{ name: "추정", xAxis: fcStart }, { xAxis: P.labels.length - 1 }]] } : undefined })) }), true); });
+              data: [[{ name: "추정", xAxis: fcStart }, { xAxis: P.labels.length - 1 }]] } : undefined }))
+            .concat(M ? [{ name: "영업이익률(R)", type: "line", yAxisIndex: 1, data: M, smooth: 0.25, symbol: "circle", symbolSize: 6, connectNulls: true, z: 10,
+              lineStyle: { width: 2.5, color: "#ff375f" }, itemStyle: { color: "#fff", borderColor: "#ff375f", borderWidth: 2 },
+              label: { show: per === "y", position: "top", color: "#ff375f", fontSize: 10, formatter: p => fmt(p.value, 1) } }] : []) }), true); });
       ["#earnSales", "#earnOp"].forEach(id => lazy($(id), () => draw()));
       seg($("#earnSeg"), v => { per = v; draw(); }); })();
     // 수주 합산 (2026-10-14): 5개사 신규수주 / 수주잔고 누적 막대, 툴팁 맨 아래 합계
