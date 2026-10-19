@@ -981,6 +981,8 @@
     // 무역: 변압기 / 배전반 (2026-10-13) 같은 그림 — 국가별 쌓은 막대 + 비중 선(R)
     const PXSRC = { us_transformer_trade: "us", eu_transformer_trade: "eu", kr_transformer_trade: "kr", cn_transformer_trade: "cn" };
     const PXNOTE = { us: "해상·항공 운송분 기준 (육로 수입은 무게 자료 없음)", eu: "역외 수입 · 유로 기준", kr: "", cn: "무게(제2수량 kg) 기준" };
+    // 연간 라벨 고르기: 15개 이하면 전부, 많으면 마지막 해에서 거꾸로 n해마다 (마지막 해는 꼭 보이게)
+    const yrShow = n => { const st = n <= 15 ? 1 : Math.ceil(n / 12); return i => (n - 1 - i) % st === 0; };
     const tradeChart = (tr, ids, hs0, tk0) => {
       let tk = tk0 && tr[tk0] ? tk0 : (Object.keys(tr).find(k => tr[k]) || Object.keys(tr)[0]), hs = hs0, per = "월간", rng = 5;   // 기간: 5년 / 10년 / 전체(0) — 처음엔 5년 (사용자 지정)
       let shownDates = [];   // 막대 그래프에 보이는 기간 → 단가 그래프도 같은 축
@@ -1003,7 +1005,7 @@
         if (gv.length && x.series.length > 1) { const m = Math.max(...gv) * 1.2, st = niceStep(m, 5);
           (Array.isArray(o.yAxis) ? o.yAxis[0] : o.yAxis).max = Math.ceil(m / st - 1e-9) * st; }
         o.grid.left = 26;   // 축 제목 (US$/kg) 이 잘리지 않게
-        if (per === "연간" && X.dates.length <= 15) Object.assign(o.xAxis.axisLabel, { interval: 0, hideOverlap: false, formatter: v => String(v).replace(" (", "\n(") });   // 연도 빠짐없이
+        if (per === "연간") Object.assign(o.xAxis.axisLabel, { interval: yrShow(X.dates.length), hideOverlap: false, formatter: v => String(v).replace(" (", "\n(") });   // 연도 (마지막 해는 늘)
         pEl._chart.setOption(o, true); };
       if (pEl) lazy(pEl, () => drawPx());
       // 분기 (사용자 요청 2026-10-19): 월간에서 3개월 합. 비중은 금액 가중 (비중×합계 의 합 ÷ 합계의 합). 덜 찬 마지막 분기는 '3Q26 (7~8월)'
@@ -1026,15 +1028,16 @@
         tEl._chart.setOption(base({ tooltip: Object.assign(base().tooltip, { axisPointer: { type: "shadow" }, valueFormatter: v => v == null ? "-" : fmt(v, 1) }),
           legend: Object.assign(base().legend, { type: "scroll", right: 0, data: named.map(s => s.name).concat((t.shares || []).map(sh => sh.name + " 비중(R)")) }),
           // 연간은 해마다 칸이 넉넉하니 연도를 하나도 빼지 않고 표시 (덜 찬 해 '(1~8월)'은 줄바꿈) (사용자 지정 2026-10-19)
-          xAxis: per === "연간" && t.dates.length - s0 <= 15 ? xCat(t.dates.slice(s0), { axisLabel: { color: "#86868b", fontSize: 11, interval: 0, formatter: v => String(v).replace(" (", "\n(") } }) : xCat(t.dates.slice(s0)),
+          // 칸이 많으면(전체) 몇 해 걸러 표시하되 마지막 해(올해 '(1~N월)')는 늘 표시 (사용자 지정 2026-10-19)
+          xAxis: per === "연간" ? xCat(t.dates.slice(s0), { axisLabel: { color: "#86868b", fontSize: 11, interval: yrShow(t.dates.length - s0), formatter: v => String(v).replace(" (", "\n(") } }) : xCat(t.dates.slice(s0)),
           yAxis: [yVal({ name: "(" + t.unit + ")" }), yVal({ name: "(%)", show: !!(t.shares && t.shares.length), splitLine: { show: false } })],
           series: [...named.map((s, k) => ({ name: s.name, type: "bar", stack: "a", data: s.vals.slice(s0), barMaxWidth: 24, itemStyle: { color: s.name === "기타" ? "#d2d2d7" : PAL[k % PAL.length] }, emphasis: { focus: "series" } })),
             ...(t.shares || []).map((sh, k) => ({ name: sh.name + " 비중(R)", type: "line", yAxisIndex: 1, data: sh.vals.slice(s0), showSymbol: t.dates.length - s0 <= 120 /* 기간이 길면 표식 없이 선만 */, showAllSymbol: true, symbol: "circle", symbolSize: 5, smooth: 0.2,
               lineStyle: { width: 2.5, color: ["#1d1d1f", "#ff375f"][k] }, itemStyle: { color: "#fff", borderColor: ["#1d1d1f", "#ff375f"][k], borderWidth: 2 }, z: 10 })),
             // 합계: 툴팁용 투명 선 + 연간은 막대 위 합계 숫자 (값 0 인 투명 막대를 맨 위에 쌓아 라벨만 표시, 2026-10-19)
             tot ? { name: "합계", type: "line", data: tot.vals.slice(s0), symbol: "none", lineStyle: { opacity: 0 }, itemStyle: { opacity: 0 } } : null,
-            tot && per === "연간" ? { name: "합계 라벨", type: "bar", stack: "a", data: tot.vals.slice(s0).map(() => 0), itemStyle: { color: "transparent" }, tooltip: { show: false }, labelLayout: { hideOverlap: true },
-              label: { show: true, position: "top", fontSize: 10, color: "#1d1d1f", formatter: p => { const v = tot.vals[s0 + p.dataIndex]; return v == null ? "" : fmt(v, 0); } } } : null].filter(Boolean) }), true);
+            tot && per === "연간" ? { name: "합계 라벨", type: "bar", stack: "a", data: tot.vals.slice(s0).map(() => 0), itemStyle: { color: "transparent" }, tooltip: { show: false },
+              label: { show: true, position: "top", fontSize: 10, color: "#1d1d1f", formatter: p => { const v = tot.vals[s0 + p.dataIndex]; return v == null || !yrShow(t.dates.length - s0)(p.dataIndex) ? "" : fmt(v, 0); } } } : null].filter(Boolean) }), true);
         $(ids.note).textContent = `${t.hs_name} · ${t.flow}금액`; drawPx(); };
       lazy(tEl, () => drawTr());
       seg($(ids.src), v => { tk = v; drawTr(); });
