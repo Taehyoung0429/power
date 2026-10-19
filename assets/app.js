@@ -1003,6 +1003,7 @@
         if (gv.length && x.series.length > 1) { const m = Math.max(...gv) * 1.2, st = niceStep(m, 5);
           (Array.isArray(o.yAxis) ? o.yAxis[0] : o.yAxis).max = Math.ceil(m / st - 1e-9) * st; }
         o.grid.left = 26;   // 축 제목 (US$/kg) 이 잘리지 않게
+        if (per === "연간" && X.dates.length <= 15) Object.assign(o.xAxis.axisLabel, { interval: 0, hideOverlap: false, formatter: v => String(v).replace(" (", "\n(") });   // 연도 빠짐없이
         pEl._chart.setOption(o, true); };
       if (pEl) lazy(pEl, () => drawPx());
       // 분기 (사용자 요청 2026-10-19): 월간에서 3개월 합. 비중은 금액 가중 (비중×합계 의 합 ÷ 합계의 합). 덜 찬 마지막 분기는 '3Q26 (7~8월)'
@@ -1024,17 +1025,26 @@
         shownDates = t.dates.slice(s0);
         tEl._chart.setOption(base({ tooltip: Object.assign(base().tooltip, { axisPointer: { type: "shadow" }, valueFormatter: v => v == null ? "-" : fmt(v, 1) }),
           legend: Object.assign(base().legend, { type: "scroll", right: 0, data: named.map(s => s.name).concat((t.shares || []).map(sh => sh.name + " 비중(R)")) }),
-          xAxis: xCat(t.dates.slice(s0)), yAxis: [yVal({ name: "(" + t.unit + ")" }), yVal({ name: "(%)", show: !!(t.shares && t.shares.length), splitLine: { show: false } })],
+          // 연간은 해마다 칸이 넉넉하니 연도를 하나도 빼지 않고 표시 (덜 찬 해 '(1~8월)'은 줄바꿈) (사용자 지정 2026-10-19)
+          xAxis: per === "연간" && t.dates.length - s0 <= 15 ? xCat(t.dates.slice(s0), { axisLabel: { color: "#86868b", fontSize: 11, interval: 0, formatter: v => String(v).replace(" (", "\n(") } }) : xCat(t.dates.slice(s0)),
+          yAxis: [yVal({ name: "(" + t.unit + ")" }), yVal({ name: "(%)", show: !!(t.shares && t.shares.length), splitLine: { show: false } })],
           series: [...named.map((s, k) => ({ name: s.name, type: "bar", stack: "a", data: s.vals.slice(s0), barMaxWidth: 24, itemStyle: { color: s.name === "기타" ? "#d2d2d7" : PAL[k % PAL.length] }, emphasis: { focus: "series" } })),
             ...(t.shares || []).map((sh, k) => ({ name: sh.name + " 비중(R)", type: "line", yAxisIndex: 1, data: sh.vals.slice(s0), showSymbol: t.dates.length - s0 <= 120 /* 기간이 길면 표식 없이 선만 */, showAllSymbol: true, symbol: "circle", symbolSize: 5, smooth: 0.2,
               lineStyle: { width: 2.5, color: ["#1d1d1f", "#ff375f"][k] }, itemStyle: { color: "#fff", borderColor: ["#1d1d1f", "#ff375f"][k], borderWidth: 2 }, z: 10 })),
-            tot ? { name: "합계", type: "line", data: tot.vals.slice(s0), symbol: "none", lineStyle: { opacity: 0 }, itemStyle: { opacity: 0 }, label: { show: per === "연간", position: "top", fontSize: 10, formatter: p => fmt(p.value, 0) } } : null].filter(Boolean) }), true);
+            // 합계: 툴팁용 투명 선 + 연간은 막대 위 합계 숫자 (값 0 인 투명 막대를 맨 위에 쌓아 라벨만 표시, 2026-10-19)
+            tot ? { name: "합계", type: "line", data: tot.vals.slice(s0), symbol: "none", lineStyle: { opacity: 0 }, itemStyle: { opacity: 0 } } : null,
+            tot && per === "연간" ? { name: "합계 라벨", type: "bar", stack: "a", data: tot.vals.slice(s0).map(() => 0), itemStyle: { color: "transparent" }, tooltip: { show: false }, labelLayout: { hideOverlap: true },
+              label: { show: true, position: "top", fontSize: 10, color: "#1d1d1f", formatter: p => { const v = tot.vals[s0 + p.dataIndex]; return v == null ? "" : fmt(v, 0); } } } : null].filter(Boolean) }), true);
         $(ids.note).textContent = `${t.hs_name} · ${t.flow}금액`; drawPx(); };
       lazy(tEl, () => drawTr());
       seg($(ids.src), v => { tk = v; drawTr(); });
       seg($(ids.hs), v => { hs = v; drawTr(); });
-      seg($(ids.per), v => { per = v; drawTr(); });
-      seg($(ids.per.replace("Per", "Rng")), v => { rng = +v; drawTr(); });
+      // 연간에서는 5년이 너무 짧아 버튼을 숨기고 10년부터 (사용자 지정 2026-10-19)
+      const rngBox = $(ids.per.replace("Per", "Rng")), rngSeg = seg(rngBox, v => { rng = +v; drawTr(); });
+      seg($(ids.per), v => { per = v; const b5 = rngBox && $('button[data-v="5"]', rngBox);
+        if (b5) b5.hidden = per === "연간";
+        if (per === "연간" && rng === 5 && rngSeg) rngSeg.set("10"); else drawTr();
+        if (rngBox && rngBox._place) setTimeout(rngBox._place, 0); });
     };
     tradeChart(d.trade || {}, { chart: "#trChart", note: "#trNote", src: "#trSeg", hs: "#trHs", per: "#trPer" }, "850423");
     tradeChart(d.sw_trade || {}, { chart: "#swChart", note: "#swNote", src: "#swSeg", hs: "#swHs", per: "#swPer" }, "853710");
