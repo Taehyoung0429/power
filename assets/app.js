@@ -74,8 +74,12 @@
   }
   window.seg = seg;
   // 산업 지표 메뉴: PC 화면에서 한 줄에 안 들어가면 두 줄로 (2026-10-19, 휴대폰은 밑줄 탭 그대로)
-  const fitTabs = () => { const t = document.getElementById("indTabs"); if (!t) return; t.classList.remove("wrap");
-    if (innerWidth > 640 && t.scrollWidth > t.clientWidth + 1) t.classList.add("wrap"); };
+  const fitTabs = () => { const t = document.getElementById("indTabs"); if (!t) return; t.classList.remove("wrap", "tight");
+    if (innerWidth <= 640) return;
+    const over = () => t.scrollWidth > t.clientWidth + 1;
+    if (over()) t.classList.add("tight");   // 먼저 간격·글자를 조금 더 줄여 보고
+    if (over()) t.classList.add("wrap");    // 그래도 안 되면 두 줄
+    if (t._place) t._place(); };
   fitTabs(); window.addEventListener("resize", fitTabs); document.fonts && document.fonts.ready.then(fitTabs);
   function tabs(root, panelsRoot, onChange, useHash) {
     const btns = $$("button", root);

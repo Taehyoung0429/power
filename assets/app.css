@@ -460,6 +460,7 @@ body[data-page=coverage] main > section:not(.hero) > .wide{max-width:1024px}
 /* 산업 지표 메뉴가 11개로 늘어 PC 화면에서 오른쪽 글자가 잘림 (2026-10-19): 간격을 줄여 한 줄에 다 보이게, 그래도 좁으면 두 줄 */
 @media (min-width:641px){
   #indTabs button{font-size:13.5px;padding:8px 12px}
+  #indTabs.tight button{font-size:13px;padding:8px 9px}
   #indTabs.wrap{flex-wrap:wrap;overflow:visible;justify-content:center;row-gap:2px}
   #indTabs.wrap .thumb{display:none}
   #indTabs.wrap button.on{background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.12),0 3px 1px rgba(0,0,0,.04)}
