@@ -278,19 +278,11 @@
     }
     const rate = kind === "op" ? d.opm : kind === "ebitda" ? null : d.sales_yoy;
     const rname = kind === "op" ? "영업이익률(R)" : kind === "ebitda" ? "EBITDA 마진(R)" : "매출액 성장률(R)";
-    const rc = opStack ? "#1d1d1f" : "#ff9f0a";   // 부문 영업이익률 선이 같이 나오면 전사 선은 검정 (부문 색과 겹치지 않게)
     if (rate && rate.some(v => v != null)) {
       series.push({ name: rname, type: "line", yAxisIndex: 1, data: rate, smooth: 0.25, symbol: "circle", symbolSize: 7, connectNulls: true,
-        lineStyle: { width: 2.5, color: rc }, itemStyle: { color: "#fff", borderColor: rc, borderWidth: 2 }, z: 10,
-        label: { show: mode === "y", position: "top", color: opStack ? "#1d1d1f" : "#c25e00", fontSize: 10, formatter: p => fmt(p.value, 1) } });
+        lineStyle: { width: 2.5, color: "#ff9f0a" }, itemStyle: { color: "#fff", borderColor: "#ff9f0a", borderWidth: 2 }, z: 10,
+        label: { show: mode === "y", position: "top", color: "#c25e00", fontSize: 10, formatter: p => fmt(p.value, 1) } });
     }
-    // 부문별 영업이익률 (부문 매출·부문 영업이익이 다 있는 기업, 사용자 요청 2026-10-19): 부문 막대와 같은 색 점선, 오른쪽 축
-    if (opStack && d.seg && d.opseg) d.opseg.forEach((o, k) => { const sg = d.seg.find(x => x.name === o.name); if (!sg || o.name === "기타") return;   // 기타는 매출이 작아 이익률이 수백 %로 튐 → 뺌
-      const m = o.vals.map((v, i) => { const r = v != null && sg.vals[i] > 0 ? Math.round(v / sg.vals[i] * 1000) / 10 : null; return r != null && Math.abs(r) <= 100 ? r : null; });
-      if (!m.some(v => v != null)) return;
-      const col = PAL[k % PAL.length];
-      series.push({ name: `${o.name} 영업이익률(R)`, type: "line", yAxisIndex: 1, data: m, smooth: 0.25, symbol: "circle", symbolSize: 5, connectNulls: true, z: 9,
-        lineStyle: { width: 1.8, type: [5, 3], color: col }, itemStyle: { color: "#fff", borderColor: col, borderWidth: 1.5 } }); });
     if (series[0]) series[0].markArea = markFc(L, fc);
     return base({
       legend: Object.assign(base().legend, { show: !legendOff, data: series.filter(s => !/합계$/.test(s.name)).map(s => s.name) }),
