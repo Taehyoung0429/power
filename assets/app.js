@@ -685,6 +685,11 @@
   };
   P.indicators = d => {
     seg($("#indTabs"));   // 세그먼트 바 모양 (손잡이), 탭 전환은 아래 tabs 가 처리
+    // 미국 전기요금·사용량은 한 메뉴 안에서 전환 (사용자 요청 2026-10-19), 예전 주소 #elsales 는 사용량으로
+    const elWhat = w => { $$("#indPanels .el-sub").forEach(x => { x.style.display = x.dataset.w === w ? "" : "none"; });
+      setTimeout(() => window.dispatchEvent(new Event("resize")), 30); };
+    const elSeg = seg($("#elWhat"), elWhat);
+    if (location.hash === "#elsales") { history.replaceState(null, "", "#elec"); if (elSeg) elSeg.set("sales"); }
     const showTab = tabs($("#indTabs"), $("#indPanels"), null, true);
     window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if (h) showTab(h); window.scrollTo({ top: 0, behavior: "smooth" }); });
     // 시장 지표 카드 → 큰 차트
