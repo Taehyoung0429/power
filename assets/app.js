@@ -856,14 +856,27 @@
       seg($("#earnSeg"), v => { per = v; draw(); }); })();
     // 수주 합산 (2026-10-14): 5개사 신규수주 / 수주잔고 누적 막대, 툴팁 맨 아래 합계
     const os = d.orders_sum;
-    if (os) [["#ordSum", os.orders], ["#blSum", os.backlog]].forEach(([id, ser]) => { const el = $(id); if (!el || !ser.length) return;
+    // 분기/연간 (2026-10-19 사용자 요청): 연간 신규수주 = 분기 합, 수주잔고 = 그해 마지막 분기 말. 올해처럼 덜 찬 해는 '2026 (~2Q)'
+    if (os) { let oper = "q";
+      const yearly = () => { const ys = [...new Set(os.labels.map(l => "20" + l.slice(2)))];
+        const qs = y => os.labels.filter(l => "20" + l.slice(2) === y);
+        const labels = ys.map(y => { const q = qs(y); return q.length === 4 ? y : `${y} (~${q[q.length - 1].slice(0, 2)})`; });
+        const conv = (ser, kind) => ser.map(s => ({ name: s.name, vals: ys.map(y => { const v = qs(y).map(l => s.vals[os.labels.indexOf(l)]);
+          if (kind === "orders") return v.some(x => x == null) ? null : Math.round(v.reduce((t, x) => t + x, 0) * 10) / 10;   // 빠진 분기가 있으면 비움
+          return v[v.length - 1]; }) }));
+        return { labels, orders: conv(os.orders, "orders"), backlog: conv(os.backlog, "backlog") }; };
+      const Y = yearly();
       const cols = ["#1d1d1f", "#0071e3", "#ff9f0a", "#34c759", "#af52de"], names = ["효성중공업 (중공업)", "HD현대일렉트릭", "LS일렉트릭", "산일전기", "일진전기 (중전기)"];
-      lazy(el, c => c.setOption(base({ legend: Object.assign(base().legend, { data: ser.map(s => s.name) }), noAlign: true,
-        tooltip: Object.assign(base().tooltip, { axisPointer: { type: "shadow" }, formatter: ps => { const i = ps[0].dataIndex, tot = ser.reduce((t, s) => t + (s.vals[i] || 0), 0);
-          return `<b>${os.labels[i]}</b><br>` + ps.map(p => `${p.marker} ${p.seriesName} <b style="float:right;margin-left:16px">${p.value == null ? "-" : fmt(p.value, 0)}</b>`).join("<br>")
-            + `<div style="border-top:1px solid #e5e5ea;margin-top:4px;padding-top:4px">합계 <b style="float:right;margin-left:16px">${fmt(tot, 0)}</b></div>`; } }),
-        xAxis: xCat(os.labels), yAxis: yVal({ name: "(십억원)", min: 0 }),
-        series: ser.map(s => ({ name: s.name, type: "bar", stack: "s", barMaxWidth: 26, data: s.vals, itemStyle: { color: cols[Math.max(0, names.indexOf(s.name)) % 5] } })) }), true)); });
+      const draw = () => { const P = oper === "q" ? os : Y;
+        [["#ordSum", P.orders], ["#blSum", P.backlog]].forEach(([id, ser]) => { const el = $(id); if (!el || !el._chart || !ser.length) return;
+          el._chart.setOption(base({ legend: Object.assign(base().legend, { data: ser.map(s => s.name) }), noAlign: true,
+            tooltip: Object.assign(base().tooltip, { axisPointer: { type: "shadow" }, formatter: ps => { const i = ps[0].dataIndex, tot = ser.reduce((t, s) => t + (s.vals[i] || 0), 0);
+              return `<b>${P.labels[i]}</b><br>` + ps.map(p => `${p.marker} ${p.seriesName} <b style="float:right;margin-left:16px">${p.value == null ? "-" : fmt(p.value, 0)}</b>`).join("<br>")
+                + `<div style="border-top:1px solid #e5e5ea;margin-top:4px;padding-top:4px">합계 <b style="float:right;margin-left:16px">${fmt(tot, 0)}</b></div>`; } }),
+            xAxis: xCat(P.labels), yAxis: yVal({ name: "(십억원)", min: 0 }),
+            series: ser.map(s => ({ name: s.name, type: "bar", stack: "s", barMaxWidth: oper === "q" ? 26 : 48, data: s.vals, itemStyle: { color: cols[Math.max(0, names.indexOf(s.name)) % 5] } })) }), true); }); };
+      ["#ordSum", "#blSum"].forEach(id => lazy($(id), () => draw()));
+      seg($("#ordPer"), v => { oper = v; draw(); }); }
     // 섹터 수급 합산 (기업 수급 차트와 같은 모양: 일별 막대 + 누적 선, 억원)
     const sf = d.sflow || []; let si = 0, srg = "6m";   // 첫 그룹(메뉴 순서대로)부터
     const sfEl = $("#sfChart");
