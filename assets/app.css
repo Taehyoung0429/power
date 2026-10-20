@@ -617,3 +617,4 @@ table.t td:first-child{z-index:1}
 @media (min-width:641px){.el-top{display:flex;gap:12px;flex-wrap:wrap}}
 @media (max-width:640px){.ctl-row.el-top .seg{gap:12px!important}.ctl-row.el-top .seg button{font-size:14px!important}}
 .el-hide{display:none!important}
+.seg[hidden]{display:none!important}

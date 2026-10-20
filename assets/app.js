@@ -965,8 +965,8 @@
                    formatter: () => key === "yoy" ? fmt(vals[i], 1) + "%" : fmt(vals[i], ppi.dec || 0) } }] };
         if (key === "yoy" && !k) sr.markLine = { silent: true, symbol: "none", data: [{ yAxis: 0 }], lineStyle: { color: "#c7c7cc" }, label: { show: false } }; });
       // 두 차트 x축 눈금 통일: 3년마다 1월에만 표시
-     const y0 = +String(ppi.dates[0]).slice(0, 4);
-     Object.assign(o.xAxis.axisLabel, { hideOverlap: false, interval: (i, v) => /-01$/.test(v) && (+v.slice(0, 4) - y0) % 3 === 0 });
+     const y0 = +String(ppi.dates[0]).slice(0, 4), yst = Math.max(1, Math.ceil(ppi.dates.length / 12 / 8));   // 기간 길이에 맞춰 1·2·3·5년… 마다
+     Object.assign(o.xAxis.axisLabel, { hideOverlap: false, interval: (i, v) => /-01$/.test(v) && (+v.slice(0, 4) - y0) % yst === 0 });
      o.xAxis.axisTick = { show: false };
      o.grid.right = key === "yoy" ? 30 : 22; if (key === "yoy") o.grid.left = 18;
      if (key === "vals" && ppi.dec) { o.grid.left = 30; o.tooltip = Object.assign({}, o.tooltip, { valueFormatter: v => v == null ? "-" : fmt(v, ppi.dec) }); }   // 전기료(US$/kWh): 소수 3자리, 긴 단위 제목
@@ -976,7 +976,16 @@
       if (pyEl && pyEl._chart) pyEl._chart.setOption(ppiOpt("yoy", "YoY(%)", "%"), true); };
     if (ppi && pEl) lazy(pEl, c => c.setOption(ppiOpt("vals", ppi.unit || "(지수)", "")));
     if (ppi && pyEl) lazy(pyEl, c => c.setOption(ppiOpt("yoy", "YoY(%)", "%")));
-    seg($("#ppiSeg"), v => { ppi = ppiGroups[+v] || ppiGroups[0]; drawPpi(); });
+    // 기간 5년/10년/전체 (사용자 요청 2026-10-20): 묶음별 그래프만. 전체 비교는 2019.01=100 고정이라 버튼 숨김
+    let ppiG = ppiGroups[0], prng = 5;
+    const ppiCut = g => { if (!g || g.name === "전체 비교") return g;
+      let s0 = prng ? Math.max(0, g.dates.length - prng * 12) : 0;
+      while (s0 < g.dates.length - 1 && g.series.every(x => x.vals[s0] == null)) s0++;   // 앞쪽 빈 달은 건너뜀
+      return Object.assign({}, g, { dates: g.dates.slice(s0), series: g.series.map(x => Object.assign({}, x, { vals: x.vals.slice(s0), yoy: x.yoy.slice(s0) })) }); };
+    const ppiRngBox = $("#ppiRng");
+    const ppiPick = () => { ppi = ppiCut(ppiG); if (ppiRngBox) { ppiRngBox.hidden = !ppiG || ppiG.name === "전체 비교"; if (ppiRngBox._place) setTimeout(ppiRngBox._place, 0); } drawPpi(); };
+    seg($("#ppiSeg"), v => { ppiG = ppiGroups[+v] || ppiGroups[0]; ppiPick(); });
+    seg(ppiRngBox, v => { prng = +v; ppiPick(); });
     if (ppi) { const t = $("#ppiTitle"), t2 = $("#ppiYoyTitle"); if (t) t.textContent = ppi.title || "미국 " + ppi.name + " PPI"; if (t2) t2.textContent = ppi.title ? "전년 대비" : "PPI 전년 대비"; }   // 첫 화면 제목
     // 무역: 변압기 / 배전반 (2026-10-13) 같은 그림 — 국가별 쌓은 막대 + 비중 선(R)
     const PXSRC = { us_transformer_trade: "us", eu_transformer_trade: "eu", kr_transformer_trade: "kr", cn_transformer_trade: "cn" };
