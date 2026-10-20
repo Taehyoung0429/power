@@ -945,8 +945,8 @@
       const many = ppi.series.length > 3;   // 전체 비교: 선이 많아 끝 값 라벨을 겹치지 않게 오른쪽에 (상대주가 그래프와 같은 방식)
       const o = lineOption(ppi.dates, ppi.series.map((s, k) => ({ name: s.name + (key === "yoy" ? " YoY" : ""), vals: s[key], color: PAL[k] })), { unit, suf, endLabel: many });
       if (many) { if (key === "yoy") o.series[0].markLine = { silent: true, symbol: "none", data: [{ yAxis: 0 }], lineStyle: { color: "#c7c7cc" }, label: { show: false } };
-        const y0 = +String(ppi.dates[0]).slice(0, 4);
-        Object.assign(o.xAxis.axisLabel, { hideOverlap: false, interval: (i, v) => /-01$/.test(v) && (+v.slice(0, 4) - y0) % 3 === 0 }); o.xAxis.axisTick = { show: false };
+        const y0 = +String(ppi.dates[0]).slice(0, 4), yst = Math.max(2, Math.ceil(ppi.dates.length / 12 / 5));   // 끝 값 라벨로 폭이 좁아 더 듬성듬성
+        Object.assign(o.xAxis.axisLabel, { hideOverlap: false, interval: (i, v) => /-01$/.test(v) && (+v.slice(0, 4) - y0) % yst === 0 }); o.xAxis.axisTick = { show: false };
         o.grid.left = key === "yoy" ? 18 : 30;   // 긴 축 제목 (19.01=100) / YoY(%) 잘리지 않게
         o.series.forEach(sr => { if (sr.endLabel) sr.endLabel.formatter = p => p.value == null ? "" : fmt(p.value, key === "yoy" ? 1 : 0) + (key === "yoy" ? "%" : ""); });
         return o; }
@@ -976,16 +976,22 @@
       if (pyEl && pyEl._chart) pyEl._chart.setOption(ppiOpt("yoy", "YoY(%)", "%"), true); };
     if (ppi && pEl) lazy(pEl, c => c.setOption(ppiOpt("vals", ppi.unit || "(지수)", "")));
     if (ppi && pyEl) lazy(pyEl, c => c.setOption(ppiOpt("yoy", "YoY(%)", "%")));
-    // 기간 5년/10년/전체 (사용자 요청 2026-10-20): 묶음별 그래프만. 전체 비교는 2019.01=100 고정이라 버튼 숨김
-    let ppiG = ppiGroups[0], prng = 5;
-    const ppiCut = g => { if (!g || g.name === "전체 비교") return g;
-      let s0 = prng ? Math.max(0, g.dates.length - prng * 12) : 0;
+    // 기간 2019.01~(기본) / 10년 / 전체 (사용자 지정 2026-10-20). 전체 비교는 고른 기간의 첫 달=100 으로 다시 맞춤
+    let ppiG = ppiGroups[0], prng = 2019;
+    const ppiCut = g => { if (!g) return g;
+      let s0 = prng === 2019 ? Math.max(0, g.dates.indexOf("2019-01")) : prng ? Math.max(0, g.dates.length - prng * 12) : 0;
       while (s0 < g.dates.length - 1 && g.series.every(x => x.vals[s0] == null)) s0++;   // 앞쪽 빈 달은 건너뜀
-      return Object.assign({}, g, { dates: g.dates.slice(s0), series: g.series.map(x => Object.assign({}, x, { vals: x.vals.slice(s0), yoy: x.yoy.slice(s0) })) }); };
+      const out = Object.assign({}, g, { dates: g.dates.slice(s0), series: g.series.map(x => Object.assign({}, x, { vals: x.vals.slice(s0), yoy: x.yoy.slice(s0) })) });
+      if (g.rebase) { const d0 = out.dates[0], lab = `${d0.slice(2, 4)}.${d0.slice(5, 7)}=100`;
+        // 계열마다 기간 안 첫 값=100 (늦게 시작하는 계열은 그 계열 첫 달 기준)
+        out.series = out.series.map(x => { const b = x.vals.find(v => v); return Object.assign({}, x, { vals: x.vals.map(v => v && b ? Math.round(v / b * 1000) / 10 : null) }); }).filter(x => x.vals.some(v => v != null));
+        out.unit = `(${lab})`; out.title = `전체 비교 (${lab})`; }
+      return out; };
     const ppiRngBox = $("#ppiRng");
-    const ppiPick = () => { ppi = ppiCut(ppiG); if (ppiRngBox) { ppiRngBox.hidden = !ppiG || ppiG.name === "전체 비교"; if (ppiRngBox._place) setTimeout(ppiRngBox._place, 0); } drawPpi(); };
+    const ppiPick = () => { ppi = ppiCut(ppiG); drawPpi(); };
     seg($("#ppiSeg"), v => { ppiG = ppiGroups[+v] || ppiGroups[0]; ppiPick(); });
     seg(ppiRngBox, v => { prng = +v; ppiPick(); });
+    ppi = ppiCut(ppiG);   // 첫 화면도 2019.01~
     if (ppi) { const t = $("#ppiTitle"), t2 = $("#ppiYoyTitle"); if (t) t.textContent = ppi.title || "미국 " + ppi.name + " PPI"; if (t2) t2.textContent = ppi.title ? "전년 대비" : "PPI 전년 대비"; }   // 첫 화면 제목
     // 무역: 변압기 / 배전반 (2026-10-13) 같은 그림 — 국가별 쌓은 막대 + 비중 선(R)
     const PXSRC = { us_transformer_trade: "us", eu_transformer_trade: "eu", kr_transformer_trade: "kr", cn_transformer_trade: "cn" };
