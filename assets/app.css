@@ -622,3 +622,10 @@ table.t td:first-child{z-index:1}
 .tile .up-big{font-size:26px}
 .tile .bot>div[style]{white-space:nowrap;padding-left:8px}
 }
+/* 커버리지 타일 하단: 왼쪽(목표주가·발간일 / 목표주가 / 상승여력)과 오른쪽(현재가·시각 / 현재가 / 등락률) 3줄씩 맞춤 (2026-10-24) */
+.tile .bot{align-items:stretch}
+.tile .bot .lc,.tile .bot .rc{display:flex;flex-direction:column;gap:2px;white-space:nowrap}
+.tile .bot .rc{text-align:right;padding-left:8px}
+.tile .bot .v2{font-weight:600;font-size:17px;letter-spacing:-.01em}
+.tile .bot .upl b{font-weight:700}
+body[data-page=home] .tile .bot .v2{font-size:12.5px}
