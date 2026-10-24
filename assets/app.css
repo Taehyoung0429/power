@@ -618,3 +618,7 @@ table.t td:first-child{z-index:1}
 @media (max-width:640px){.ctl-row.el-top .seg{gap:12px!important}.ctl-row.el-top .seg button{font-size:14px!important}}
 .el-hide{display:none!important}
 .seg[hidden]{display:none!important}
+@media (max-width:959px){   /* 커버리지 타일: 상승여력 글씨를 줄여 옆 현재가가 한 줄에 들어가게 (2026-10-24) */
+.tile .up-big{font-size:26px}
+.tile .bot>div[style]{white-space:nowrap;padding-left:8px}
+}
