@@ -629,3 +629,5 @@ table.t td:first-child{z-index:1}
 .tile .bot .v2{font-weight:600;font-size:17px;letter-spacing:-.01em}
 .tile .bot .upl b{font-weight:700}
 body[data-page=home] .tile .bot .v2{font-size:12.5px}
+.tile .spark{height:100px}   /* TP 칩을 빼고 그래프 상하폭 확대 (2026-10-24) */
+@media (min-width:960px){body[data-page=home] .tile .spark{height:58px}}

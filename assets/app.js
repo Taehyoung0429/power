@@ -405,7 +405,7 @@
   function spark(el, vals, color) {
     if (!el || !vals || !vals.length) return;
     lazy(el, c => c.setOption({ animationDuration: 1400, grid: { left: 0, right: 0, top: 4, bottom: 4 }, xAxis: { type: "category", show: false, boundaryGap: false, data: vals.map((_, i) => i) },
-      yAxis: { type: "value", show: false, scale: true }, tooltip: { show: false },
+      yAxis: { type: "value", show: false, scale: true, min: v => v.min, max: v => v.max }, tooltip: { show: false },
       series: [{ type: "line", data: vals, showSymbol: false, smooth: 0.3, lineStyle: { width: 2, color }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: color + "33" }, { offset: 1, color: color + "00" }]) } }] }));
   }
   window.spark = spark;
