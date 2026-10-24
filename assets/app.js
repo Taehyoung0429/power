@@ -1122,6 +1122,7 @@
         case "px": el.textContent = money(q.p, el.dataset.ccy); if ("v" in el.dataset) el.dataset.v = q.p; break;
         case "chg": el.textContent = fp(q.c, 2); cls(el, q.c); break;
         case "at": el.textContent = "현재가 " + label(q); break;
+        case "atd": el.textContent = "현재가 " + (+q.t.slice(5, 7)) + "/" + (+q.t.slice(8, 10)); break;
         case "atchg": el.textContent = label(q) + " " + fp(q.c, 2); cls(el, q.c); break;
         case "up": { const tp = +el.dataset.tp; if (tp) { const u = (tp / q.p - 1) * 100; el.textContent = fp(u); cls(el, u); if ("v" in el.dataset) el.dataset.v = u.toFixed(1); } break; }
       }
