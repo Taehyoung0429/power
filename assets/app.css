@@ -636,3 +636,4 @@ body[data-page=home] .tile .bot .v2{font-size:12.5px}
 .tile .nmrow .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tile .nmrow .badge{flex:0 0 auto}
 .tile,.rail.in-slab .tile{min-height:0}.tile .bot{margin-top:10px}   /* 그래프와 목표주가 사이 빈 공간 줄임, 모바일·PC (2026-10-27) */
+@media (max-width:959px){body[data-page=home] #cov .sec-head{margin-bottom:10px}body[data-page=home] #cov .rail.in-slab .track{padding-top:4px}}   /* 모바일 홈: 커버리지 제목 줄과 타일 사이 간격 축소 (2026-10-27) */
