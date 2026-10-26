@@ -631,3 +631,9 @@ table.t td:first-child{z-index:1}
 body[data-page=home] .tile .bot .v2{font-size:12.5px}
 .tile .spark{height:100px}   /* TP 칩을 빼고 그래프 상하폭 확대 (2026-10-24) */
 @media (min-width:960px){body[data-page=home] .tile .spark{height:58px}}
+/* 커버리지 타일 (2026-10-27): 영문명 삭제, 투자의견은 기업명 오른쪽 한 줄, 모바일 그래프 기간 표시 */
+.tile .nmrow{display:flex;align-items:center;gap:10px}
+.tile .nmrow .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tile .nmrow .badge{flex:0 0 auto}
+.tile .spk-cap{margin-top:6px;color:var(--fg3)}
+@media (min-width:960px){.tile .nmrow{flex-direction:column;align-items:flex-start;gap:3px}.tile .spk-cap{display:none}}
