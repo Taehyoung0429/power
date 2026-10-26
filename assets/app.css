@@ -635,4 +635,4 @@ body[data-page=home] .tile .bot .v2{font-size:12.5px}
 .tile .nmrow{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .tile .nmrow .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tile .nmrow .badge{flex:0 0 auto}
-@media (max-width:959px){.tile,.rail.in-slab .tile{min-height:0}.tile .bot{margin-top:10px}}   /* 그래프와 목표주가 사이 빈 공간 줄임 (2026-10-27) */
+.tile,.rail.in-slab .tile{min-height:0}.tile .bot{margin-top:10px}   /* 그래프와 목표주가 사이 빈 공간 줄임, 모바일·PC (2026-10-27) */
