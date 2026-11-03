@@ -858,7 +858,7 @@
             data: x.vals.map((v, i) => ({ value: v, itemStyle: P.fc[i] ? { opacity: 0.45 } : undefined })),
             markArea: k === 0 && fcStart >= 0 ? { silent: true, itemStyle: { color: "rgba(0,113,227,.05)" }, label: { show: true, position: "insideTop", color: "#86868b", fontSize: 10 },
               data: [[{ name: "추정", xAxis: fcStart }, { xAxis: P.labels.length - 1 }]] } : undefined }))
-            .concat(M ? [{ name: "영업이익률(R)", type: "line", yAxisIndex: 1, data: M, smooth: 0.25, showAllSymbol: true, symbol: (v, p) => per === "y" || /^1Q/.test(P.labels[p.dataIndex]) ? "circle" : "none", symbolSize: 6, connectNulls: true, z: 10,   // 분기: 매년 1Q 에만 표식 (2026-11-03)
+            .concat(M ? [{ name: "영업이익률(R)", type: "line", yAxisIndex: 1, data: M, smooth: 0.25, showAllSymbol: true, symbol: (v, p) => per === "y" || (el._chart.getWidth() - 110) / P.labels.length >= 10 || /^1Q/.test(P.labels[p.dataIndex]) ? "circle" : "none", symbolSize: 6, connectNulls: true, z: 10,   // 점 간격 10px 이상이면 모든 분기, 좁으면(휴대폰) 매년 1Q 에만 표식 (2026-11-03)
               lineStyle: { width: 2.5, color: "#ff375f" }, itemStyle: { color: "#fff", borderColor: "#ff375f", borderWidth: 2 },
               label: { show: per === "y", position: "top", color: "#ff375f", fontSize: 10, formatter: p => fmt(p.value, 1) } }] : []) }), true); });
       ["#earnSales", "#earnOp"].forEach(id => lazy($(id), () => draw()));
