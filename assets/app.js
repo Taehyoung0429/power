@@ -1088,7 +1088,7 @@
   P.news = d => {   // 필터: 전체/섹터 + 주소 #c=<기업> (기업 페이지와 같은 뉴스: 지정 기사 + 섹터 뉴스)
     const q = $("#nq"); let sec = "all", code = null;
     const apply = () => { const s = (q.value || "").trim().toLowerCase(); const set = code && d.comp[code] ? new Set(d.comp[code].links) : null;
-      $$(".item[data-sec]").forEach(it => { const ok = (set ? set.has(it.dataset.link) : (sec === "all" || it.dataset.sec === sec)) && (!s || it.textContent.toLowerCase().includes(s)); it.style.display = ok ? "" : "none"; });
+      $$(".item[data-sec]").forEach(it => { const ok = (set ? set.has(it.dataset.link) : (sec === "all" || it.dataset.sec.split(" ").includes(sec))) && (!s || it.textContent.toLowerCase().includes(s)); it.style.display = ok ? "" : "none"; });
       const f = $("#nFilter"); if (set) { f.hidden = false; f.innerHTML = `${d.comp[code].name} 뉴스만 보는 중 · <a href="#all">전체 보기</a>`; } else f.hidden = true; };
     q.addEventListener("input", apply);
     const sg = seg($("#nSeg"), v => { sec = v; code = null; apply(); });
