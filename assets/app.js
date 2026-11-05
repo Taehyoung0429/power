@@ -943,7 +943,7 @@
     const lastIdx = vals => { let i = vals.length - 1; while (i >= 0 && vals[i] == null) i--; return i; };
     const ppiOpt = (key, unit, suf) => {
       const many = ppi.series.length > 3;   // 전체 비교: 선이 많아 끝 값 라벨을 겹치지 않게 오른쪽에 (상대주가 그래프와 같은 방식)
-      const o = lineOption(ppi.dates, ppi.series.map((s, k) => ({ name: s.name + (key === "yoy" ? " YoY" : ""), vals: s[key], color: PAL[k] })), { unit, suf, endLabel: many });
+      const o = lineOption(ppi.dates, ppi.series.map((s, k) => ({ name: s.name, vals: s[key], color: PAL[k] })), { unit, suf, endLabel: many });
       if (many) { if (key === "yoy") o.series[0].markLine = { silent: true, symbol: "none", data: [{ yAxis: 0 }], lineStyle: { color: "#c7c7cc" }, label: { show: false } };
         const y0 = +String(ppi.dates[0]).slice(0, 4), yst = Math.max(2, Math.ceil(ppi.dates.length / 12 / 5));   // 끝 값 라벨로 폭이 좁아 더 듬성듬성
         Object.assign(o.xAxis.axisLabel, { hideOverlap: false, interval: (i, v) => /-01$/.test(v) && (+v.slice(0, 4) - y0) % yst === 0 }); o.xAxis.axisTick = { show: false };
