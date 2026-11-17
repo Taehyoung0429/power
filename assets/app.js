@@ -762,7 +762,7 @@
     // 국내 변압기 통계 (2026-11-17 사용자 요청): 한전 SRM 계약 통합 엑셀 → assets/kr_tr.json (탭 열 때 읽음)
     //  가격 = 계약 1건 = 점 (업체별 색, 마우스 올리면 공고명·대수·MVA·금액), 선 = 평균 계약 단가 (직전 12개월). 유찰 공고 추정가는 회색 ×
     (() => { const pe = $("#ktPrice"), se = $("#ktShare"), le = $("#ktLead"), qe = $("#ktPpi"); if (!pe) return;
-      let K = null, volt = "154", rng = 0, busy = false;   // 기본 전체 (사용자 지정 2026-11-17)
+      let K = null, volt = "345", rng = 0, busy = false;   // 기본 전체 (사용자 지정 2026-11-17)
       const ORDER = ["HD현대일렉트릭", "효성중공업", "LS일렉트릭", "일진전기", "엘에스파워솔루션", "원광산전"];
       const VC = { "HD현대일렉트릭": "#0071e3", "효성중공업": "#ff9f0a", "LS일렉트릭": "#34c759", "일진전기": "#ff375f", "엘에스파워솔루션": "#30b0c7", "원광산전": "#bf5af2", "기타": "#a2845e" };
       const FAIL = "유찰(추정가)";
@@ -786,7 +786,8 @@
         pe._chart.setOption(base({ tooltip: Object.assign(base().tooltip, { trigger: "item", formatter: tip }),
           legend: Object.assign(base().legend, { type: "scroll", right: 0, data: vendors.concat([FAIL, "평균 계약 단가"]) }),
           xAxis: axisT(), yAxis: yVal(Object.assign({ name: "(억원/대)", min: 0 }, top ? { max: top.max, interval: top.st } : {})), series }), true);
-        $("#ktPriceNote").textContent = volt === "154" ? "154kV 일반 유입 전력용 60MVA급만 (가스절연·소용량 제외)." : "345kV 166.7MVA 단상 단권변압기만 (대당 = 단상 1대).";
+        $("#ktPriceNote").textContent = { "154": "154kV 일반 유입 전력용 60MVA급만 (가스절연·소용량 제외).", "345": "345kV 166.7MVA 단상 단권변압기만 (대당 = 단상 1대).",
+          "765": "765kV 666.7MVA 단상 변압기만 (대당 = 단상 1대). 평균 계약 단가는 직전 36개월." }[volt];
       };
       const drawShare = () => { if (!K || !se._chart) return; const S = K.share[volt]; if (!S) { se._chart.clear(); return; }
         const y0 = rng ? new Date().getFullYear() - rng + 1 : 0, idx = S.years.map((y, i) => +y >= y0 ? i : -1).filter(i => i >= 0);
