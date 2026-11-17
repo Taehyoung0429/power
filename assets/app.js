@@ -155,11 +155,12 @@
     const raw = span / n, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p;
     return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
   }
-  // 최고값 m 을 담는 가장 낮은 '깔끔한' 축 최대값 (눈금 4~8칸 중 고름). 6억 → 7억, 8억 아님 (2026-11-17)
-  function tightMax(m) {
+  // 최고값 m 을 담는 가장 낮은 '깔끔한' 축 최대값 (눈금 4~8칸 중 고름). 6억 → 7억, 8억 아님 (2026-11-17). {max, st(눈금 간격), n(칸 수)}
+  function tightAxis(m) {
     if (!(m > 0)) return null;
     let best = null;
-    for (let n = 4; n <= 8; n++) { const st = niceStep(m, n), top = Math.ceil(m / st - 1e-9) * st; if (best == null || top < best) best = top; }
+    for (let n = 4; n <= 8; n++) { const st = niceStep(m, n), top = Math.ceil(m / st - 1e-9) * st;
+      if (best == null || top < best.max) best = { max: top, st, n: Math.round(top / st) }; }
     return best;
   }
   function alignZero(o) {
@@ -1049,14 +1050,19 @@
         shownDates = t.dates.slice(s0);
         // Y축 최대값: 보이는 기간의 쌓인 막대 최고값 바로 위 눈금 (자동은 6억인데 8억처럼 너무 높게 잡혀서, 사용자 지정 2026-11-17)
         const stacked = shownDates.map((_, i) => tot && tot.vals[s0 + i] != null ? tot.vals[s0 + i] : named.reduce((a, s) => a + (s.vals[s0 + i] || 0), 0));
-        const yMax = tightMax(Math.max(0, ...stacked) * (per === "연간" ? 1.1 : 1.02));   // 연간은 막대 위 합계 숫자 자리
+        const L = tightAxis(Math.max(0, ...stacked) * (per === "연간" ? 1.1 : 1.02));   // 연간은 막대 위 합계 숫자 자리
+        // 비중(R) 축은 왼쪽과 같은 칸 수로 맞춤 (공통 맞춤(alignZero)은 비중 축 칸 수에 끌려 왼쪽을 2배 가까이 높였음)
+        const rTop = Math.max(0, ...(t.shares || []).flatMap(sh => sh.vals.slice(s0).filter(v => v != null)));
+        const stR = L && rTop > 0 ? niceStep(rTop / L.n, 1) : null;
         tEl._chart.setOption(base({ tooltip: Object.assign(base().tooltip, { axisPointer: { type: "shadow" }, valueFormatter: v => v == null ? "-" : fmt(v, 1) }),
           legend: Object.assign(base().legend, { type: "scroll", right: 0, data: named.map(s => s.name).concat((t.shares || []).map(sh => sh.name + " 비중(R)")) }),
           // 연간은 해마다 칸이 넉넉하니 연도를 하나도 빼지 않고 표시 (덜 찬 해 '(1~8월)'은 줄바꿈) (사용자 지정 2026-10-19)
           // 칸이 많으면(전체) 몇 해 걸러 표시하되 마지막 해(올해 '(1~N월)')는 늘 표시 (사용자 지정 2026-10-19)
           // 월간·분기도 가장 최근 달(분기)에 축 라벨이 늘 붙게 (사용자 지정 2026-10-20)
           xAxis: xCat(t.dates.slice(s0), { axisLabel: { color: "#86868b", fontSize: 11, interval: yrShow(t.dates.length - s0), formatter: v => String(v).replace(" (", "\n(") } }),
-          yAxis: [yVal(Object.assign({ name: "(" + t.unit + ")", min: 0 }, yMax ? { max: yMax } : {})), yVal({ name: "(%)", show: !!(t.shares && t.shares.length), splitLine: { show: false } })],
+          noAlign: !!L,
+          yAxis: [yVal(Object.assign({ name: "(" + t.unit + ")", min: 0 }, L ? { max: L.max, interval: L.st } : {})),
+                  yVal(Object.assign({ name: "(%)", show: !!(t.shares && t.shares.length), splitLine: { show: false } }, stR ? { min: 0, max: stR * L.n, interval: stR } : {}))],
           series: [...named.map((s, k) => ({ name: s.name, type: "bar", stack: "a", data: s.vals.slice(s0), barMaxWidth: 24, itemStyle: { color: s.name === "기타" ? "#d2d2d7" : PAL[k % PAL.length] }, emphasis: { focus: "series" } })),
             ...(t.shares || []).map((sh, k) => ({ name: sh.name + " 비중(R)", type: "line", yAxisIndex: 1, data: sh.vals.slice(s0), showSymbol: t.dates.length - s0 <= 120 /* 기간이 길면 표식 없이 선만 */, showAllSymbol: true, symbol: "circle", symbolSize: 5, smooth: 0.2,
               lineStyle: { width: 2.5, color: ["#1d1d1f", "#ff375f"][k] }, itemStyle: { color: "#fff", borderColor: ["#1d1d1f", "#ff375f"][k], borderWidth: 2 }, z: 10 })),
