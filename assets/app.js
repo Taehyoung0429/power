@@ -693,8 +693,9 @@
   };
   P.indicators = d => {
     seg($("#indTabs"));   // 세그먼트 바 모양 (손잡이), 탭 전환은 아래 tabs 가 처리
+    if (/^#(elec|elsales)$/.test(location.hash)) history.replaceState(null, "", "#uspower");   // 두 탭을 '미국 전력 통계' 하나로 합침 (2026-11-17)
     const showTab = tabs($("#indTabs"), $("#indPanels"), null, true);
-    window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if (h) showTab(h); window.scrollTo({ top: 0, behavior: "smooth" }); });
+    window.addEventListener("hashchange", () => { let h = location.hash.slice(1); if (h === "elec" || h === "elsales") h = "uspower"; if (h) showTab(h); window.scrollTo({ top: 0, behavior: "smooth" }); });
     // 시장 지표 카드 → 큰 차트
     const big = $("#mkBig"); let cur = (d.market || [])[0];
     const rangeCut = r => { const days = { "1m": 31, "3m": 92, "6m": 182, "1y": 365, all: 9999 }[r]; return new Date(Date.now() - days * 864e5).toISOString().slice(0, 10); };
@@ -758,6 +759,67 @@
     seg($("#frRange"), v => { frg = v; drawFr(); });
     toggleData($("#frData"), $("#frDataBox"), () => { const g = fr[fi]; dataTable($("#frDataBox"), ["날짜", ...g.series.map(s => s.name)], g.dates.map((x, i) => [x, ...g.series.map(s => s.vals[i])]).reverse(), "외국인보유율"); });
     // 미국 전기요금 (EIA, 2026-10-14): '지역 비교' = 용도 하나로 여러 지역 선 / '지역별 용도' = 한 지역의 용도 4개 선. 오른쪽은 전년 대비.
+    // 국내 변압기 통계 (2026-11-17 사용자 요청): 한전 SRM 계약 통합 엑셀 → assets/kr_tr.json (탭 열 때 읽음)
+    //  가격 = 계약 1건 = 점 (업체별 색, 마우스 올리면 공고명·대수·MVA·금액), 선 = 평균 계약 단가 (직전 12개월). 유찰 공고 추정가는 회색 빈 점
+    (() => { const pe = $("#ktPrice"), se = $("#ktShare"), le = $("#ktLead"), qe = $("#ktPpi"); if (!pe) return;
+      let K = null, volt = "154", rng = 10, busy = false;
+      const ORDER = ["HD현대일렉트릭", "효성중공업", "LS일렉트릭", "일진전기", "엘에스파워솔루션", "원광산전"];
+      const VC = { "HD현대일렉트릭": "#0071e3", "효성중공업": "#ff9f0a", "LS일렉트릭": "#34c759", "일진전기": "#ff375f", "엘에스파워솔루션": "#30b0c7", "원광산전": "#bf5af2", "기타": "#a2845e" };
+      const FAIL = "유찰(추정가)";
+      const rank = v => { const i = ORDER.indexOf(v); return i < 0 ? 99 : i; };
+      const cutYm = () => { if (!rng) return "0000-00"; const t = new Date(); return `${t.getFullYear() - rng}-${String(t.getMonth() + 1).padStart(2, "0")}`; };
+      const axisT = (extra = {}) => Object.assign({ type: "time", axisLine: { lineStyle: { color: "#d2d2d7" } }, axisTick: { show: false }, splitLine: { show: false },
+        axisLabel: { color: "#86868b", fontSize: 11, hideOverlap: true, formatter: v => { const d = new Date(v); return `${d.getFullYear()}.${d.getMonth() + 1}`; } } }, extra);
+      const drawPrice = () => { if (!K || !pe._chart) return; const P = K.price[volt], cut = cutYm();
+        const pts = P.points.filter(p => p.d >= cut);
+        const vendors = [...new Set(pts.filter(p => p.v !== FAIL).map(p => p.v))].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+        $("#ktPriceTitle").textContent = `${volt}kV 변압기 대당 계약 단가 (억원, VAT 제외)`;
+        const tip = p => { const x = p.data[2]; if (!x) return `${String(p.data[0]).slice(0, 7)} 평균 계약 단가 <b>${fmt(p.data[1], 1)}억원</b>`;
+          return `<b>${x.v}</b> · ${x.d}<br>${x.n}<br>대당 <b>${fmt(x.p, 1)}억원</b>` + (x.q ? ` · ${fmt(x.q, 0)}대` : "") + (x.mva ? ` · ${fmt(x.mva, 1)}MVA` : "") + (x.amt ? ` · 합계 ${fmt(x.amt, 1)}억원` : ""); };
+        const series = vendors.map(v => ({ name: v, type: "scatter", symbolSize: 8, data: pts.filter(p => p.v === v).map(p => [p.d, p.p, p]),
+            itemStyle: { color: VC[v] || "#8e8e93", opacity: 0.85 }, emphasis: { focus: "series" } }))
+          .concat([{ name: FAIL, type: "scatter", symbolSize: 7, data: pts.filter(p => p.v === FAIL).map(p => [p.d, p.p, p]),
+            itemStyle: { color: "rgba(0,0,0,0)", borderColor: "#aeaeb2", borderWidth: 1.2 }, emphasis: { focus: "series" } },
+            { name: "평균 계약 단가", type: "line", showSymbol: false, smooth: 0.15, z: 10, data: P.line.filter(r => r[0] >= cut).map(r => [r[0] + "-15", r[1]]),
+              lineStyle: { width: 2.5, color: "#1d1d1f" }, itemStyle: { color: "#1d1d1f" } }]);
+        const top = tightAxis(Math.max(...pts.map(p => p.p), ...P.line.filter(r => r[0] >= cut).map(r => r[1])) * 1.03);
+        pe._chart.setOption(base({ tooltip: Object.assign(base().tooltip, { trigger: "item", formatter: tip }),
+          legend: Object.assign(base().legend, { type: "scroll", right: 0, data: vendors.concat([FAIL, "평균 계약 단가"]) }),
+          xAxis: axisT(), yAxis: yVal(Object.assign({ name: "(억원/대)", min: 0 }, top ? { max: top.max, interval: top.st } : {})), series }), true);
+        $("#ktPriceNote").textContent = volt === "154" ? "154kV 일반 유입 전력용 60MVA급만 (가스절연·소용량 제외)." : "345kV 166.7MVA 단상 단권변압기만 (대당 = 단상 1대).";
+      };
+      const drawShare = () => { if (!K || !se._chart) return; const S = K.share[volt]; if (!S) { se._chart.clear(); return; }
+        const y0 = rng ? new Date().getFullYear() - rng + 1 : 0, idx = S.years.map((y, i) => +y >= y0 ? i : -1).filter(i => i >= 0);
+        $("#ktShareTitle").textContent = `${volt}kV 변압기 시장 점유율 (연간, 계약금액 기준)`;
+        const yrs = idx.map(i => S.years[i]);
+        const series = S.companies.map((c, k) => ({ name: c, type: "bar", stack: "s", barMaxWidth: 28, data: idx.map(i => S.pct[i][k] || null),
+            itemStyle: { color: c === "기타" ? "#d2d2d7" : (VC[c] || PAL[k % PAL.length]) }, emphasis: { focus: "series" } }))
+          .filter(sr => sr.data.some(v => v));
+        se._chart.setOption(base({ tooltip: Object.assign(base().tooltip, { axisPointer: { type: "shadow" },
+            formatter: ps => { const i = ps[0].dataIndex; return `<b>${yrs[i]}</b> · 합계 ${fmt(S.total[idx[i]], 1)}억원<br>` + ps.filter(p => p.value).map(p => `${p.marker}${p.seriesName} ${fmt(p.value, 1)}%`).join("<br>"); } }),
+          legend: Object.assign(base().legend, { type: "scroll", right: 0 }), xAxis: xCat(yrs), yAxis: yVal({ name: "(%)", min: 0, max: 100, interval: 25 }), series }), true); };
+      const drawLead = () => { if (!K || !le._chart) return; const L = K.lead, cut = cutYm(), s0 = Math.max(0, L.dates.findIndex(d => d >= cut));
+        const pick = ["전체", volt + "kV"], ser = L.series.filter(s => pick.includes(s.name)).map(s => ({ name: s.name === "전체" ? "전체 (154·345·765kV)" : s.name, vals: s.vals.slice(s0),
+          color: s.name === "전체" ? "#1d1d1f" : "#ff375f", bold: s.name !== "전체" }));
+        const o = lineOption(L.dates.slice(s0), ser, { unit: "(개월)", endLabel: true, dec: 1 });
+        o.yAxis.scale = false; o.yAxis.min = 0;
+        le._chart.setOption(o, true); };
+      const drawPpi = () => { if (!K || !qe._chart) return; const Q = K.ppi, cut = cutYm(), s0 = Math.max(0, Q.dates.findIndex(d => d >= cut)), g = n => (Q.series.find(s => s.name === n) || {}).vals || [];
+        const ser = [{ name: "한국 (154·345·765kV 합성)", vals: g("한국 (납기 지난 분)"), color: "#1d1d1f", bold: true },
+          { name: "한국 (납품 예정분)", vals: g("한국 (납품 예정분)"), color: "#1d1d1f", dash: true },
+          { name: `한국 ${volt}kV`, vals: g(`한국 ${volt}kV`), color: "#0071e3" },
+          { name: "미국 변압기 PPI", vals: g("미국 PPI"), color: "#ff375f", bold: true }].map(s => Object.assign(s, { vals: s.vals.slice(s0) }));
+        const o = lineOption(Q.dates.slice(s0), ser, { unit: "(2013 = 100)", endLabel: true, dec: 1 });
+        qe._chart.setOption(o, true); };
+      const drawAll = () => { drawPrice(); drawShare(); drawLead(); drawPpi();
+        $("#ktNote").textContent = K ? `출처: 한전 SRM 계약·공고 (${K.asof} 기준). 금액은 VAT 제외. 점유율 = 그해 계약금액 비중 (공고와 연결 안 된 수의계약 포함, 연간단가 계약은 낙찰 업체 수로 나눔). `
+          + "리드타임 = 계약일 → 계약상 납기, 직전 12개월 계약의 중앙값 (765kV는 36개월). 가격지수 = 납기 월 기준 154·345·765kV 단가 변화를 계약금액 비중으로 가중한 연쇄지수, 납품 예정분 = 이미 계약됐고 납기가 남은 물량. 미국 = BLS 변압기 PPI (WPU117409)." : ""; };
+      const load = () => { if (K || busy) return; busy = true;
+        fetch("assets/kr_tr.json?v=" + Date.now().toString().slice(0, -5)).then(r => r.json()).then(j => { K = j; drawAll(); })
+          .catch(() => { pe.innerHTML = '<p class="note" style="padding:40px 0;text-align:center">데이터를 읽지 못했습니다</p>'; }); };
+      lazy(pe, () => { load(); drawPrice(); }); lazy(se, () => drawShare()); lazy(le, () => drawLead()); lazy(qe, () => drawPpi());
+      seg($("#ktVolt"), v => { volt = v; drawAll(); });
+      seg($("#ktRng"), v => { rng = +v; drawAll(); }); })();
     // 데이터는 탭을 열 때 assets/eia_price.json 에서 (ERCOT·PJM 은 주 묶음 근사)
     (() => { const el = $("#elChart"), ey = $("#elYoy"), area = $("#elArea"), picksBox = $("#elPicks"); if (!el) return;
       let E = null, mode = "cmp", one = "US", sec = "ALL", per = "m", rng = 5, picks = ["US", "PJM", "ERCOT"], busy = false;   // 처음엔 미국 전체·PJM·ERCOT (사용자 지정)

@@ -639,3 +639,5 @@ body[data-page=home] .tile .bot .v2{font-size:12.5px}
 @media (max-width:959px){body[data-page=home] #cov .sec-head{margin-bottom:10px}body[data-page=home] #cov .rail.in-slab .track{padding-top:4px}}   /* 모바일 홈: 커버리지 제목 줄과 타일 사이 간격 축소 (2026-10-27) */
 @media (min-width:960px){body[data-page=home] .hbody{padding-left:0;padding-right:0}}   /* PC 홈 가로폭을 다른 탭 카드 폭(1024px)에 맞춤 (2026-10-27) */
 @media (min-width:1024px){.gnav .in,.lnav .in{padding-left:0;padding-right:0}}   /* 최상단 메뉴 좌우 끝을 아래 버블(1024px)과 맞춤 (2026-10-27) */
+/* 지표 '미국 전력 통계' 탭: 전기요금·사용량 소제목 (2026-11-17) */
+.sub-h { font-size: 21px; font-weight: 700; letter-spacing: -.01em; margin: 4px 0 14px; color: #1d1d1f; }
