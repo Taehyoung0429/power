@@ -784,7 +784,7 @@
               lineStyle: { width: 2.5, color: "#1d1d1f" }, itemStyle: { color: "#1d1d1f" } }]);
         const top = tightAxis(Math.max(...pts.map(p => p.p), ...P.line.filter(r => r[0] >= cut).map(r => r[1])) * 1.03);
         pe._chart.setOption(base({ tooltip: Object.assign(base().tooltip, { trigger: "item", formatter: tip }),
-          legend: Object.assign(base().legend, { type: "scroll", right: 0, data: vendors.concat([FAIL, "평균 계약 단가"]) }),
+          legend: Object.assign(base().legend, { type: "scroll", right: 0, data: vendors.concat([{ name: FAIL, icon: "path://M2,0L5,3L8,0L10,2L7,5L10,8L8,10L5,7L2,10L0,8L3,5L0,2Z" }, "평균 계약 단가"]) }),
           xAxis: axisT(), yAxis: yVal(Object.assign({ name: "(억원/대)", min: 0 }, top ? { max: top.max, interval: top.st } : {})), series }), true);
         $("#ktPriceNote").textContent = { "154": "154kV 일반 유입 전력용 60MVA급만 (가스절연·소용량 제외).", "345": "345kV 166.7MVA 단상 단권변압기만 (대당 = 단상 1대).",
           "765": "765kV 666.7MVA 단상 변압기만 (대당 = 단상 1대). 평균 계약 단가는 직전 36개월." }[volt];
