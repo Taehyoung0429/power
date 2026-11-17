@@ -760,9 +760,9 @@
     toggleData($("#frData"), $("#frDataBox"), () => { const g = fr[fi]; dataTable($("#frDataBox"), ["날짜", ...g.series.map(s => s.name)], g.dates.map((x, i) => [x, ...g.series.map(s => s.vals[i])]).reverse(), "외국인보유율"); });
     // 미국 전기요금 (EIA, 2026-10-14): '지역 비교' = 용도 하나로 여러 지역 선 / '지역별 용도' = 한 지역의 용도 4개 선. 오른쪽은 전년 대비.
     // 국내 변압기 통계 (2026-11-17 사용자 요청): 한전 SRM 계약 통합 엑셀 → assets/kr_tr.json (탭 열 때 읽음)
-    //  가격 = 계약 1건 = 점 (업체별 색, 마우스 올리면 공고명·대수·MVA·금액), 선 = 평균 계약 단가 (직전 12개월). 유찰 공고 추정가는 회색 빈 점
+    //  가격 = 계약 1건 = 점 (업체별 색, 마우스 올리면 공고명·대수·MVA·금액), 선 = 평균 계약 단가 (직전 12개월). 유찰 공고 추정가는 회색 ×
     (() => { const pe = $("#ktPrice"), se = $("#ktShare"), le = $("#ktLead"), qe = $("#ktPpi"); if (!pe) return;
-      let K = null, volt = "154", rng = 10, busy = false;
+      let K = null, volt = "154", rng = 0, busy = false;   // 기본 전체 (사용자 지정 2026-11-17)
       const ORDER = ["HD현대일렉트릭", "효성중공업", "LS일렉트릭", "일진전기", "엘에스파워솔루션", "원광산전"];
       const VC = { "HD현대일렉트릭": "#0071e3", "효성중공업": "#ff9f0a", "LS일렉트릭": "#34c759", "일진전기": "#ff375f", "엘에스파워솔루션": "#30b0c7", "원광산전": "#bf5af2", "기타": "#a2845e" };
       const FAIL = "유찰(추정가)";
@@ -778,8 +778,8 @@
           return `<b>${x.v}</b> · ${x.d}<br>${x.n}<br>대당 <b>${fmt(x.p, 1)}억원</b>` + (x.q ? ` · ${fmt(x.q, 0)}대` : "") + (x.mva ? ` · ${fmt(x.mva, 1)}MVA` : "") + (x.amt ? ` · 합계 ${fmt(x.amt, 1)}억원` : ""); };
         const series = vendors.map(v => ({ name: v, type: "scatter", symbolSize: 8, data: pts.filter(p => p.v === v).map(p => [p.d, p.p, p]),
             itemStyle: { color: VC[v] || "#8e8e93", opacity: 0.85 }, emphasis: { focus: "series" } }))
-          .concat([{ name: FAIL, type: "scatter", symbolSize: 7, data: pts.filter(p => p.v === FAIL).map(p => [p.d, p.p, p]),
-            itemStyle: { color: "rgba(0,0,0,0)", borderColor: "#aeaeb2", borderWidth: 1.2 }, emphasis: { focus: "series" } },
+          .concat([{ name: FAIL, type: "scatter", symbolSize: 8, data: pts.filter(p => p.v === FAIL).map(p => [p.d, p.p, p]),   // 유찰 = × 표시 (사용자 지정 2026-11-17)
+            symbol: "path://M2,0L5,3L8,0L10,2L7,5L10,8L8,10L5,7L2,10L0,8L3,5L0,2Z", itemStyle: { color: "#8e8e93" }, emphasis: { focus: "series" } },
             { name: "평균 계약 단가", type: "line", showSymbol: false, smooth: 0.15, z: 10, data: P.line.filter(r => r[0] >= cut).map(r => [r[0] + "-15", r[1]]),
               lineStyle: { width: 2.5, color: "#1d1d1f" }, itemStyle: { color: "#1d1d1f" } }]);
         const top = tightAxis(Math.max(...pts.map(p => p.p), ...P.line.filter(r => r[0] >= cut).map(r => r[1])) * 1.03);
@@ -812,7 +812,7 @@
         const o = lineOption(Q.dates.slice(s0), ser, { unit: "(2013 = 100)", endLabel: true, dec: 1 });
         qe._chart.setOption(o, true); };
       const drawAll = () => { drawPrice(); drawShare(); drawLead(); drawPpi();
-        $("#ktNote").textContent = K ? `출처: 한전 SRM 계약·공고 (${K.asof} 기준). 금액은 VAT 제외. 점유율 = 그해 계약금액 비중 (공고와 연결 안 된 수의계약 포함, 연간단가 계약은 낙찰 업체 수로 나눔). `
+        $("#ktNote").textContent = K ? `금액은 VAT 제외. 점유율 = 그해 계약금액 비중 (공고와 연결 안 된 수의계약 포함, 연간단가 계약은 낙찰 업체 수로 나눔). `
           + "리드타임 = 계약일 → 계약상 납기, 직전 12개월 계약의 중앙값 (765kV는 36개월). 가격지수 = 납기 월 기준 154·345·765kV 단가 변화를 계약금액 비중으로 가중한 연쇄지수, 납품 예정분 = 이미 계약됐고 납기가 남은 물량. 미국 = BLS 변압기 PPI (WPU117409)." : ""; };
       const load = () => { if (K || busy) return; busy = true;
         fetch("assets/kr_tr.json?v=" + Date.now().toString().slice(0, -5)).then(r => r.json()).then(j => { K = j; drawAll(); })
