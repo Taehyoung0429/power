@@ -813,8 +813,7 @@
         const o = lineOption(Q.dates.slice(s0), ser, { unit: "(2013 = 100)", endLabel: true, dec: 1 });
         qe._chart.setOption(o, true); };
       const drawAll = () => { drawPrice(); drawShare(); drawLead(); drawPpi();
-        $("#ktNote").textContent = K ? `금액은 VAT 제외. 점유율 = 그해 계약금액 비중 (공고와 연결 안 된 수의계약 포함, 연간단가 계약은 낙찰 업체 수로 나눔). `
-          + "리드타임 = 계약일 → 계약상 납기, 직전 12개월 계약의 중앙값 (765kV는 36개월). 가격지수 = 납기 월 기준 154·345·765kV 단가 변화를 계약금액 비중으로 가중한 연쇄지수, 납품 예정분 = 이미 계약됐고 납기가 남은 물량. 미국 = BLS 변압기 PPI (WPU117409)." : ""; };
+        /* 아래 설명 문구 없음 (사용자 지정 2026-11-17) */};
       const load = () => { if (K || busy) return; busy = true;
         fetch("assets/kr_tr.json?v=" + Date.now().toString().slice(0, -5)).then(r => r.json()).then(j => { K = j; drawAll(); })
           .catch(() => { pe.innerHTML = '<p class="note" style="padding:40px 0;text-align:center">데이터를 읽지 못했습니다</p>'; }); };
