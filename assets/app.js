@@ -799,8 +799,9 @@
         se._chart.setOption(base({ tooltip: Object.assign(base().tooltip, { axisPointer: { type: "shadow" },
             formatter: ps => { const i = ps[0].dataIndex; return `<b>${yrs[i]}</b> · 합계 ${fmt(S.total[idx[i]], 1)}억원<br>` + ps.filter(p => p.value).map(p => `${p.marker}${p.seriesName} ${fmt(p.value, 1)}%`).join("<br>"); } }),
           legend: Object.assign(base().legend, { type: "scroll", right: 0 }), xAxis: xCat(yrs), yAxis: yVal({ name: "(%)", min: 0, max: 100, interval: 25 }), series }), true); };
+      const trimEnd = a => { let n = a.length; while (n && a[n - 1] == null) n--; return a.slice(0, n); };   // 끝의 빈 달을 빼야 끝 숫자 라벨 위치가 깨지지 않음
       const drawLead = () => { if (!K || !le._chart) return; const L = K.lead, cut = cutYm(), s0 = Math.max(0, L.dates.findIndex(d => d >= cut));
-        const pick = ["전체", volt + "kV"], ser = L.series.filter(s => pick.includes(s.name)).map(s => ({ name: s.name === "전체" ? "전체 (154·345·765kV)" : s.name, vals: s.vals.slice(s0),
+        const pick = ["전체", volt + "kV"], ser = L.series.filter(s => pick.includes(s.name)).map(s => ({ name: s.name === "전체" ? "전체 (154·345·765kV)" : s.name, vals: trimEnd(s.vals.slice(s0)),
           color: s.name === "전체" ? "#1d1d1f" : "#ff375f", bold: s.name !== "전체" }));
         const o = lineOption(L.dates.slice(s0), ser, { unit: "(개월)", endLabel: true, dec: 1 });
         o.yAxis.scale = false; o.yAxis.min = 0;
@@ -809,7 +810,7 @@
         const ser = [{ name: "한국 (154·345·765kV 합성)", vals: g("한국 (납기 지난 분)"), color: "#1d1d1f", bold: true },
           { name: "한국 (납품 예정분)", vals: g("한국 (납품 예정분)"), color: "#1d1d1f", dash: true },
           { name: `한국 ${volt}kV`, vals: g(`한국 ${volt}kV`), color: "#0071e3" },
-          { name: "미국 변압기 PPI", vals: g("미국 PPI"), color: "#ff375f", bold: true }].map(s => Object.assign(s, { vals: s.vals.slice(s0) }));
+          { name: "미국 변압기 PPI", vals: g("미국 PPI"), color: "#ff375f", bold: true }].map(s => Object.assign(s, { vals: trimEnd(s.vals.slice(s0)) }));
         const o = lineOption(Q.dates.slice(s0), ser, { unit: "(2013 = 100)", endLabel: true, dec: 1 });
         qe._chart.setOption(o, true); };
       const drawAll = () => { drawPrice(); drawShare(); drawLead(); drawPpi();
