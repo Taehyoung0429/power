@@ -1053,7 +1053,11 @@
         const L = tightAxis(Math.max(0, ...stacked) * (per === "연간" ? 1.1 : 1.02));   // 연간은 막대 위 합계 숫자 자리
         // 비중(R) 축은 왼쪽과 같은 칸 수로 맞춤 (공통 맞춤(alignZero)은 비중 축 칸 수에 끌려 왼쪽을 2배 가까이 높였음)
         const rTop = Math.max(0, ...(t.shares || []).flatMap(sh => sh.vals.slice(s0).filter(v => v != null)));
-        const stR = L && rTop > 0 ? niceStep(rTop / L.n, 1) : null;
+        let R = null;
+        if (L && rTop > 0) {   // 같은 칸 수로 100%를 넘으면(예: 140%) 비중 축만 따로 깔끔하게 (비중 축은 격자선이 없어 어긋나 보이지 않음)
+          const st = niceStep(rTop / L.n, 1);
+          R = st * L.n <= Math.max(100, rTop) ? { max: st * L.n, st } : (a => ({ max: Math.min(a.max, 100), st: a.st }))(tightAxis(rTop * 1.02));
+        }
         tEl._chart.setOption(base({ tooltip: Object.assign(base().tooltip, { axisPointer: { type: "shadow" }, valueFormatter: v => v == null ? "-" : fmt(v, 1) }),
           legend: Object.assign(base().legend, { type: "scroll", right: 0, data: named.map(s => s.name).concat((t.shares || []).map(sh => sh.name + " 비중(R)")) }),
           // 연간은 해마다 칸이 넉넉하니 연도를 하나도 빼지 않고 표시 (덜 찬 해 '(1~8월)'은 줄바꿈) (사용자 지정 2026-10-19)
@@ -1062,7 +1066,7 @@
           xAxis: xCat(t.dates.slice(s0), { axisLabel: { color: "#86868b", fontSize: 11, interval: yrShow(t.dates.length - s0), formatter: v => String(v).replace(" (", "\n(") } }),
           noAlign: !!L,
           yAxis: [yVal(Object.assign({ name: "(" + t.unit + ")", min: 0 }, L ? { max: L.max, interval: L.st } : {})),
-                  yVal(Object.assign({ name: "(%)", show: !!(t.shares && t.shares.length), splitLine: { show: false } }, stR ? { min: 0, max: stR * L.n, interval: stR } : {}))],
+                  yVal(Object.assign({ name: "(%)", show: !!(t.shares && t.shares.length), splitLine: { show: false } }, R ? { min: 0, max: R.max, interval: R.st } : {}))],
           series: [...named.map((s, k) => ({ name: s.name, type: "bar", stack: "a", data: s.vals.slice(s0), barMaxWidth: 24, itemStyle: { color: s.name === "기타" ? "#d2d2d7" : PAL[k % PAL.length] }, emphasis: { focus: "series" } })),
             ...(t.shares || []).map((sh, k) => ({ name: sh.name + " 비중(R)", type: "line", yAxisIndex: 1, data: sh.vals.slice(s0), showSymbol: t.dates.length - s0 <= 120 /* 기간이 길면 표식 없이 선만 */, showAllSymbol: true, symbol: "circle", symbolSize: 5, smooth: 0.2,
               lineStyle: { width: 2.5, color: ["#1d1d1f", "#ff375f"][k] }, itemStyle: { color: "#fff", borderColor: ["#1d1d1f", "#ff375f"][k], borderWidth: 2 }, z: 10 })),
