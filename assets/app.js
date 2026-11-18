@@ -760,9 +760,9 @@
     Object.values(ppEls).forEach(el => { if (el) lazy(el, () => drawPP()); });
     seg($("#ppSeg"), v => { pg = +v; drawPP(); drawFP(); });
     // 12·24개월 선행 PER (2026-11-18 사용자 요청): assets/fwd_per.json (일별 종가·선행 EPS, driver.py) → PER = 종가/EPS.
-    //  왼쪽 24M·오른쪽 12M (사용자 지정), 기업 = 위 섹터 버튼의 기업, 색 = 위 PER 그래프와 같은 순서. 장중 주가(live.json)로 오늘 점을 바꿔 그림
-    let FP = null, fpCut = "2020-01-01", fpBusy = false;
-    const fpEls = { e24: $("#fp24"), e12: $("#fp12") };
+    //  왼쪽 12M·오른쪽 24M, PER·PBR 그래프보다 위, 2022년~/2024년~ (사용자 지정), 기업 = 위 섹터 버튼의 기업, 색 = 위 PER 그래프와 같은 순서. 장중 주가(live.json)로 오늘 점을 바꿔 그림
+    let FP = null, fpCut = "2022-01-01", fpBusy = false;
+    const fpEls = { e12: $("#fp12"), e24: $("#fp24") };
     const fpData = () => { if (!FP) return null; const L = window.__live, n = FP.dates.length; let dates = FP.dates, day = L && L.at ? L.at.slice(0, 10) : null;
       const add = day && day > dates[n - 1], same = day && day === dates[n - 1]; if (add) dates = dates.concat([day]);
       const cos = {}; Object.entries(FP.cos).forEach(([code, c]) => { const q = L && L.q && L.q[code];
