@@ -527,6 +527,18 @@
                 markPoint: (() => { let i = bd.price.length - 1; while (i >= 0 && bd.price[i] == null) i--; if (i < 0) return undefined;   // 가장 최근 주가: 표식 + 지금 배수 (소수 1자리)
                   return { silent: true, data: [{ coord: [i, sc(bd.price[i])], value: b.now, symbol: "circle", symbolSize: 9, itemStyle: { color: "#fff", borderColor: "#ff9f0a", borderWidth: 2.5 },
                     label: { show: true, position: "bottom", distance: 6, color: "#c25e00", fontSize: 11, fontWeight: 700, backgroundColor: "rgba(255,255,255,.9)", padding: [2, 4], borderRadius: 4, formatter: () => fmt(b.now, 1) + "X" } }] }; })() }] }), true); }); });
+      // 주가 동인 분석 (driver.py, 2026-11-18): EPS 기여·멀티플 기여 누적 막대 + 주가 수익률 선. 색은 사용자 엑셀 그래프 그대로
+      const dv = d.driver;
+      [["#chDrv12", "h12"], ["#chDrv24", "h24"]].forEach(([id, h]) => { const el = $(id), x = dv && dv[h]; if (!el || !x) return;
+        lazy(el, c => c.setOption(base({ legend: Object.assign(base().legend, { data: ["EPS 기여도", "멀티플 기여도", "주가 수익률"] }),
+          tooltip: Object.assign(base().tooltip, { formatter: ps => { const i = ps[0].dataIndex, row = (lab, v) => `${lab} <b style="float:right;margin-left:16px">${v}</b>`;
+            return `<b>${dv.dates[i]}</b><br>` + [row("주가 수익률", fmt(x.ret[i], 1) + "%"), row("EPS 기여도", fmt(x.e[i], 1) + "%p"), row("멀티플 기여도", fmt(x.m[i], 1) + "%p"),
+              row("주가", fmt(dv.price[i], 0)), row("EPS", x.eps[i] == null ? "-" : fmt(x.eps[i], 0)), row("PER", x.per[i] == null ? "-" : fmt(x.per[i], 1) + "배")].join("<br>"); } }),
+          xAxis: xCat(dv.dates, { axisLabel: { color: "#86868b", fontSize: 11, hideOverlap: true, formatter: v => v.slice(2, 7).replace("-", ".") } }),
+          yAxis: yVal({ name: "(%)" }), grid: Object.assign(base().grid, { right: 22 }),
+          series: [{ name: "EPS 기여도", type: "bar", stack: "d", barCategoryGap: "69%", data: x.e, itemStyle: { color: "#DCEAF7", borderColor: "#DCEAF7", borderWidth: 1 } },
+            { name: "멀티플 기여도", type: "bar", stack: "d", data: x.m, itemStyle: { color: "#FBE3D6", borderColor: "#FBE3D6", borderWidth: 1 } },
+            { name: "주가 수익률", type: "line", data: x.ret, symbol: "none", z: 10, lineStyle: { width: 2, color: "#F58220" }, itemStyle: { color: "#F58220" } }] }), true)); });
       // 보고서 그림을 옮긴 차트 (data/report_charts.json): 비중 = 100% 누적 막대, 추이 = 막대
       // 금액 차트(누적·막대+선)끼리 왼쪽 Y축 최대값을 같게 (사용자 지정 2026-10-13): 누적은 기간별 합, 막대+선은 막대 값
       // 금액 차트(누적·막대+선)끼리 왼쪽 Y축 최대값을 같게: 누적은 기간별 합, 막대+선은 막대 값 중 최대를 보기 좋게 올림 (사용자 지정 2026-10-13)
