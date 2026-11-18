@@ -745,7 +745,7 @@
     seg($("#relMode"), v => { relMode = v; drawRel(); });
     toggleData($("#relData"), $("#relDataBox"), () => { const g = rel[gi]; dataTable($("#relDataBox"), ["날짜", ...g.series.map(s => s.name)], g.dates.map((x, i) => [x, ...g.series.map(s => (relMode === "rel" ? s.rel : s.abs)[i])]).reverse(), "상대주가_" + g.group); });
     // PER·PBR
-    const pp = d.per_pbr || []; let pg = 0;
+    const pp = d.per_pbr || []; let pg = Math.max(0, pp.findIndex(g => g.group === "전력 솔루션"));   // 기본 = 전력 솔루션 (사용자 지정 2026-11-18)
     // PER·PBR 을 좌우 두 그래프로 (2026-10-12, PPI 와 같은 배치). x = 연도, 선 = 기업
     const ppEls = { per: $("#ppChart"), pbr: $("#pbChart") };
     const drawOne = pk => { const g = pp[pg], el = ppEls[pk]; if (!g || !el || !el._chart) return; const obj = g[pk];
@@ -758,7 +758,28 @@
           label: { show: true, position: "top", fontSize: 10, color: PAL[k % PAL.length], formatter: p => p.value == null ? "" : fmt(p.value, 1) }, labelLayout: { hideOverlap: true } })) }), true); };
     const drawPP = () => { drawOne("per"); drawOne("pbr"); const g = pp[pg]; if (g) $("#ppNote").textContent = g.basis + " · 150배 넘는 PER 은 그래프에서 생략"; };
     Object.values(ppEls).forEach(el => { if (el) lazy(el, () => drawPP()); });
-    seg($("#ppSeg"), v => { pg = +v; drawPP(); });
+    seg($("#ppSeg"), v => { pg = +v; drawPP(); drawFP(); });
+    // 12·24개월 선행 PER (2026-11-18 사용자 요청): assets/fwd_per.json (일별 종가·선행 EPS, driver.py) → PER = 종가/EPS.
+    //  왼쪽 24M·오른쪽 12M (사용자 지정), 기업 = 위 섹터 버튼의 기업, 색 = 위 PER 그래프와 같은 순서. 장중 주가(live.json)로 오늘 점을 바꿔 그림
+    let FP = null, fpCut = "2020-01-01", fpBusy = false;
+    const fpEls = { e24: $("#fp24"), e12: $("#fp12") };
+    const fpData = () => { if (!FP) return null; const L = window.__live, n = FP.dates.length; let dates = FP.dates, day = L && L.at ? L.at.slice(0, 10) : null;
+      const add = day && day > dates[n - 1], same = day && day === dates[n - 1]; if (add) dates = dates.concat([day]);
+      const cos = {}; Object.entries(FP.cos).forEach(([code, c]) => { const q = L && L.q && L.q[code];
+        const ext = a => add ? a.concat([a[n - 1]]) : a;
+        let price = ext(c.price); if (q && q.p && (add || same)) price = price.slice(0, -1).concat([q.p]);
+        cos[c.name] = { price, e12: ext(c.e12), e24: ext(c.e24) }; });
+      return { dates, cos }; };
+    const drawFP = () => { const D = fpData(), g = pp[pg]; if (!D || !g) return; const s0 = Math.max(0, D.dates.findIndex(x => x >= fpCut));
+      Object.entries(fpEls).forEach(([k, el]) => { if (!el || !el._chart) return;
+        const ser = Object.keys(g.per).map((nm, j) => { const c = D.cos[nm]; return c ? { name: nm, color: PAL[j % PAL.length],
+          vals: c.price.slice(s0).map((p, i) => { const e = c[k][s0 + i]; return p && e > 0 && p / e < 150 ? +(p / e).toFixed(1) : null; }) } : null; }).filter(Boolean);
+        el._chart.setOption(lineOption(D.dates.slice(s0), ser, { unit: "(배)", suf: "배", dec: 1, endLabel: true }), true); }); };
+    const fpLoad = () => { if (FP || fpBusy) return; fpBusy = true;
+      fetch("assets/fwd_per.json?v=" + Date.now().toString().slice(0, -5)).then(r => r.json()).then(j => { FP = j; drawFP(); }).catch(() => { fpBusy = false; }); };
+    Object.values(fpEls).forEach(el => { if (el) lazy(el, () => { fpLoad(); drawFP(); }); });
+    seg($("#fpRng"), v => { fpCut = v; drawFP(); });
+    document.addEventListener("live", () => drawFP());
     toggleData($("#ppData"), $("#ppDataBox"), () => { const g = pp[pg]; const names = Object.keys(g.per);
       dataTable($("#ppDataBox"), ["연도", ...names.map(n => n + " PER"), ...Object.keys(g.pbr).map(n => n + " PBR")], g.years.map((y, k) => [y, ...names.map(n => g.per[n][k]), ...Object.keys(g.pbr).map(n => g.pbr[n][k])]), "PER_PBR"); });
     // 외국인 보유율
