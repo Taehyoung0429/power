@@ -1269,6 +1269,7 @@
         case "at": el.textContent = "현재가 " + label(q); break;
         case "atd": el.textContent = "현재가 " + (+q.t.slice(5, 7)) + "/" + (+q.t.slice(8, 10)); break;
         case "atchg": el.textContent = label(q) + " " + fp(q.c, 2); cls(el, q.c); break;
+        case "pe": { const e = +el.dataset.eps; if (e > 0) el.textContent = (q.p / e).toFixed(1) + "배"; break; }
         case "up": { const tp = +el.dataset.tp; if (tp) { const u = (tp / q.p - 1) * 100; el.textContent = fp(u); cls(el, u); if ("v" in el.dataset) el.dataset.v = u.toFixed(1); } break; }
       }
     });
