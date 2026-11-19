@@ -758,7 +758,7 @@
           label: { show: true, position: "top", fontSize: 10, color: PAL[k % PAL.length], formatter: p => p.value == null ? "" : fmt(p.value, 1) }, labelLayout: { hideOverlap: true } })) }), true); };
     const drawPP = () => { drawOne("per"); drawOne("pbr"); const g = pp[pg]; if (g) $("#ppNote").textContent = g.basis + " · 150배 넘는 PER 은 그래프에서 생략"; };
     Object.values(ppEls).forEach(el => { if (el) lazy(el, () => drawPP()); });
-    seg($("#ppSeg"), v => { pg = +v; drawPP(); drawFP(); });
+    seg($("#ppSeg"), v => { pg = +v; drawPP(); drawFP(); drawFD(); });
     // 12·24개월 선행 PER (2026-11-18 사용자 요청): assets/fwd_per.json (일별 종가·선행 EPS, driver.py) → PER = 종가/EPS.
     //  왼쪽 12M·오른쪽 24M, PER·PBR 그래프보다 위, 2022년~/2024년~ (사용자 지정), 기업 = 위 섹터 버튼의 기업, 색 = 위 PER 그래프와 같은 순서. 장중 주가(live.json)로 오늘 점을 바꿔 그림
     let FP = null, fpCut = "2022-01-01", fpBusy = false;
@@ -768,18 +768,47 @@
       const cos = {}; Object.entries(FP.cos).forEach(([code, c]) => { const q = L && L.q && L.q[code];
         const ext = a => add ? a.concat([a[n - 1]]) : a;
         let price = ext(c.price); if (q && q.p && (add || same)) price = price.slice(0, -1).concat([q.p]);
-        cos[c.name] = { price, e12: ext(c.e12), e24: ext(c.e24) }; });
+        cos[c.name] = { price, e12: ext(c.e12), e24: ext(c.e24), shares: c.shares }; });
       return { dates, cos }; };
     const drawFP = () => { const D = fpData(), g = pp[pg]; if (!D || !g) return; const s0 = Math.max(0, D.dates.findIndex(x => x >= fpCut));
       Object.entries(fpEls).forEach(([k, el]) => { if (!el || !el._chart) return;
         const ser = Object.keys(g.per).map((nm, j) => { const c = D.cos[nm]; return c ? { name: nm, color: PAL[j % PAL.length],
           vals: c.price.slice(s0).map((p, i) => { const e = c[k][s0 + i]; return p && e > 0 && p / e < 150 ? +(p / e).toFixed(1) : null; }) } : null; }).filter(Boolean);
         el._chart.setOption(lineOption(D.dates.slice(s0), ser, { unit: "(배)", suf: "배", dec: 1, endLabel: true }), true); }); };
+    // 섹터 주가 동인 (2026-11-19 사용자 요청): 섹터 PER = Σ(종가×주식수) / Σ(선행 EPS×주식수). 기업 페이지 주가 동인과 같은 식
+    //  (2025년 마지막 거래일 대비, EPS 기여 = J×N/M, 멀티플 기여 = J×O/M). 기간 버튼과 무관. 기준일에 주가·EPS 없는 기업은 제외
+    const fdEls = { e12: $("#fd12"), e24: $("#fd24") };
+    const drawFD = () => { const D = fpData(), g = pp[pg]; if (!D || !g) return;
+      const b = D.dates.reduce((k, x, i) => x < "2026-01-01" ? i : k, -1); if (b < 0) return;
+      const ds = D.dates.slice(b), parts = [];
+      Object.entries(fdEls).forEach(([k, el]) => { if (!el || !el._chart) return;
+        const cos = Object.keys(g.per).map(nm => [nm, D.cos[nm]]).filter(([, c]) => c && c.shares && c.price[b] && c[k][b] > 0);
+        if (k === "e12") parts.push(cos.map(([nm]) => nm).join("·"));
+        const last = {}, P = [], E = [];
+        for (let i = b; i < D.dates.length; i++) { let p = 0, e = 0;
+          cos.forEach(([nm, c]) => { const L = last[nm] = last[nm] || {}; if (c.price[i]) L.p = c.price[i]; if (c[k][i] != null) L.e = c[k][i]; p += L.p * c.shares; e += L.e * c.shares; });
+          P.push(p); E.push(e); }
+        const ret = [], ce = [], cm = [], per = [];
+        P.forEach((p, i) => { const J = (p / P[0] - 1) * 100; let r;
+          if (E[i] > 0) { const M = Math.log(p / P[0]), N = Math.log(E[i] / E[0]), O = M - N; r = Math.abs(M) < 1e-12 ? [N * 100, O * 100] : [J * N / M, J * O / M]; per.push(p / E[i]); }
+          else { r = ce.length ? [ce[ce.length - 1], cm[cm.length - 1]] : [0, 0]; per.push(null); }
+          ret.push(+J.toFixed(2)); ce.push(+r[0].toFixed(2)); cm.push(+r[1].toFixed(2)); });
+        el._chart.setOption(base({ legend: Object.assign(base().legend, { data: ["EPS 기여도", "멀티플 기여도", "시총 수익률"] }),
+          tooltip: Object.assign(base().tooltip, { formatter: ps => { const i = ps[0].dataIndex, row = (lab, v) => `${lab} <b style="float:right;margin-left:16px">${v}</b>`;
+            return `<b>${ds[i]}</b><br>` + [row("시총 수익률", fmt(ret[i], 1) + "%"), row("EPS 기여도", fmt(ce[i], 1) + "%p"), row("멀티플 기여도", fmt(cm[i], 1) + "%p"),
+              row("시총 합", fmt(P[i] / 1e12, 1) + "조원"), row("선행 순이익 합", fmt(E[i] / 1e12, 2) + "조원"), row("섹터 PER", per[i] == null ? "-" : fmt(per[i], 1) + "배")].join("<br>"); } }),
+          xAxis: xCat(ds, { axisLabel: { color: "#86868b", fontSize: 11, hideOverlap: true, formatter: v => v.slice(2, 7).replace("-", ".") } }),
+          yAxis: yVal({ name: "(%)" }), grid: Object.assign(base().grid, { right: 22 }),
+          series: [{ name: "EPS 기여도", type: "bar", stack: "d", barCategoryGap: "69%", data: ce, itemStyle: { color: "#DCEAF7", borderColor: "#DCEAF7", borderWidth: 1 } },
+            { name: "멀티플 기여도", type: "bar", stack: "d", data: cm, itemStyle: { color: "#FBE3D6", borderColor: "#FBE3D6", borderWidth: 1 } },
+            { name: "시총 수익률", type: "line", data: ret, symbol: "none", z: 10, lineStyle: { width: 2, color: "#F58220" }, itemStyle: { color: "#F58220" } }] }), true); });
+      const nt = $("#fdNote"); if (nt && parts.length) nt.textContent = `${D.dates[b]} 종가 대비 · 섹터 PER = 시총 합 / (선행 EPS×주식수) 합 · 막대 합 = 시총 수익률(선) · ${parts[0]}`; };
     const fpLoad = () => { if (FP || fpBusy) return; fpBusy = true;
-      fetch("assets/fwd_per.json?v=" + Date.now().toString().slice(0, -5)).then(r => r.json()).then(j => { FP = j; drawFP(); }).catch(() => { fpBusy = false; }); };
+      fetch("assets/fwd_per.json?v=" + Date.now().toString().slice(0, -5)).then(r => r.json()).then(j => { FP = j; drawFP(); drawFD(); }).catch(() => { fpBusy = false; }); };
     Object.values(fpEls).forEach(el => { if (el) lazy(el, () => { fpLoad(); drawFP(); }); });
+    Object.values(fdEls).forEach(el => { if (el) lazy(el, () => { fpLoad(); drawFD(); }); });
     seg($("#fpRng"), v => { fpCut = v; drawFP(); });
-    document.addEventListener("live", () => drawFP());
+    document.addEventListener("live", () => { drawFP(); drawFD(); });
     toggleData($("#ppData"), $("#ppDataBox"), () => { const g = pp[pg]; const names = Object.keys(g.per);
       dataTable($("#ppDataBox"), ["연도", ...names.map(n => n + " PER"), ...Object.keys(g.pbr).map(n => n + " PBR")], g.years.map((y, k) => [y, ...names.map(n => g.per[n][k]), ...Object.keys(g.pbr).map(n => g.pbr[n][k])]), "PER_PBR"); });
     // 외국인 보유율
