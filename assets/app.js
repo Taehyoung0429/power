@@ -827,7 +827,7 @@
       let K = null, volt = "345", rng = 0, busy = false;   // 기본 전체 (사용자 지정 2026-11-17)
       const ORDER = ["HD현대일렉트릭", "효성중공업", "LS일렉트릭", "일진전기", "엘에스파워솔루션", "원광산전"];
       const VC = { "HD현대일렉트릭": "#0071e3", "효성중공업": "#ff9f0a", "LS일렉트릭": "#34c759", "일진전기": "#ff375f", "엘에스파워솔루션": "#30b0c7", "원광산전": "#bf5af2", "기타": "#a2845e" };
-      const FAIL = "유찰(추정가)";
+      const FAIL = "유찰(추정가)"; const NT = "진행 중 공고(추정가)";
       const rank = v => { const i = ORDER.indexOf(v); return i < 0 ? 99 : i; };
       const cutYm = () => { if (!rng) return "0000-00"; const t = new Date(); return `${t.getFullYear() - rng}-${String(t.getMonth() + 1).padStart(2, "0")}`; };
       const axisT = (extra = {}) => Object.assign({ type: "time", axisLine: { lineStyle: { color: "#d2d2d7" } }, axisTick: { show: false }, splitLine: { show: false },
@@ -842,11 +842,13 @@
             itemStyle: { color: VC[v] || "#8e8e93", opacity: 0.85 }, emphasis: { focus: "series" } }))
           .concat([{ name: FAIL, type: "scatter", symbolSize: 8, data: pts.filter(p => p.v === FAIL).map(p => [p.d, p.p, p]),   // 유찰 = × 표시 (사용자 지정 2026-11-17)
             symbol: "path://M2,0L5,3L8,0L10,2L7,5L10,8L8,10L5,7L2,10L0,8L3,5L0,2Z", itemStyle: { color: "#8e8e93" }, emphasis: { focus: "series" } },
+            { name: NT, type: "scatter", symbolSize: 9, data: (K.notice && K.notice[volt] || []).filter(p => p.d >= cut).map(p => [p.d, p.p, p]),   // 진행 중 공고 = 빈 동그라미 (사용자 지정 2026-11-20)
+              symbol: "emptyCircle", itemStyle: { color: "#1d1d1f", borderWidth: 1.5 }, emphasis: { focus: "series" } },
             { name: "평균 계약 단가", type: "line", showSymbol: false, smooth: 0.15, z: 10, data: P.line.filter(r => r[0] >= cut).map(r => [r[0] + "-15", r[1]]),
               lineStyle: { width: 2.5, color: "#1d1d1f" }, itemStyle: { color: "#1d1d1f" } }]);
-        const top = tightAxis(Math.max(...pts.map(p => p.p), ...P.line.filter(r => r[0] >= cut).map(r => r[1])) * 1.03);
+        const top = tightAxis(Math.max(...pts.map(p => p.p), ...(K.notice && K.notice[volt] || []).filter(p => p.d >= cut).map(p => p.p), ...P.line.filter(r => r[0] >= cut).map(r => r[1])) * 1.03);
         pe._chart.setOption(base({ tooltip: Object.assign(base().tooltip, { trigger: "item", formatter: tip }),
-          legend: Object.assign(base().legend, { type: "scroll", right: 0, data: vendors.concat([{ name: FAIL, icon: "path://M2,0L5,3L8,0L10,2L7,5L10,8L8,10L5,7L2,10L0,8L3,5L0,2Z" }, "평균 계약 단가"]) }),
+          legend: Object.assign(base().legend, { type: "scroll", right: 0, data: vendors.concat([{ name: FAIL, icon: "path://M2,0L5,3L8,0L10,2L7,5L10,8L8,10L5,7L2,10L0,8L3,5L0,2Z" }, { name: NT, icon: "emptyCircle" }, "평균 계약 단가"]) }),
           xAxis: axisT(), yAxis: yVal(Object.assign({ name: "(억원/대)", min: 0 }, top ? { max: top.max, interval: top.st } : {})), series }), true);
         $("#ktPriceNote").textContent = { "154": "154kV 일반 유입 전력용 60MVA급만 (가스절연·소용량 제외).", "345": "345kV 166.7MVA 단상 단권변압기만 (대당 = 단상 1대).",
           "765": "765kV 666.7MVA 단상 변압기만 (대당 = 단상 1대). 평균 계약 단가는 직전 36개월." }[volt];
