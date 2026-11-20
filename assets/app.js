@@ -761,7 +761,7 @@
     seg($("#ppSeg"), v => { pg = +v; drawPP(); drawFP(); drawFD(); });
     // 12·24개월 선행 PER (2026-11-18 사용자 요청): assets/fwd_per.json (일별 종가·선행 EPS, driver.py) → PER = 종가/EPS.
     //  왼쪽 12M·오른쪽 24M, PER·PBR 그래프보다 위, 2022년~/2024년~ (사용자 지정), 기업 = 위 섹터 버튼의 기업, 색 = 위 PER 그래프와 같은 순서. 장중 주가(live.json)로 오늘 점을 바꿔 그림
-    let FP = null, fpCut = "2022-01-01", fpBusy = false;
+    let FP = null, fpCut = "2024-01-01", fpBusy = false;
     const fpEls = { e12: $("#fp12"), e24: $("#fp24") };
     const fpData = () => { if (!FP) return null; const L = window.__live, n = FP.dates.length; let dates = FP.dates, day = L && L.at ? L.at.slice(0, 10) : null;
       const add = day && day > dates[n - 1], same = day && day === dates[n - 1]; if (add) dates = dates.concat([day]);
@@ -827,7 +827,7 @@
       let K = null, volt = "345", rng = 0, busy = false;   // 기본 전체 (사용자 지정 2026-11-17)
       const ORDER = ["HD현대일렉트릭", "효성중공업", "LS일렉트릭", "일진전기", "엘에스파워솔루션", "원광산전"];
       const VC = { "HD현대일렉트릭": "#0071e3", "효성중공업": "#ff9f0a", "LS일렉트릭": "#34c759", "일진전기": "#ff375f", "엘에스파워솔루션": "#30b0c7", "원광산전": "#bf5af2", "기타": "#a2845e" };
-      const FAIL = "유찰(추정가)"; const NT = "진행 중 공고(추정가)";
+      const FAIL = "유찰"; const NT = "진행 중 공고";   // 범례에서 (추정가) 뺌 (사용자 지정 2026-11-20)
       const rank = v => { const i = ORDER.indexOf(v); return i < 0 ? 99 : i; };
       const cutYm = () => { if (!rng) return "0000-00"; const t = new Date(); return `${t.getFullYear() - rng}-${String(t.getMonth() + 1).padStart(2, "0")}`; };
       const axisT = (extra = {}) => Object.assign({ type: "time", axisLine: { lineStyle: { color: "#d2d2d7" } }, axisTick: { show: false }, splitLine: { show: false },
