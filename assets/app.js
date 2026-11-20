@@ -842,7 +842,7 @@
             itemStyle: { color: VC[v] || "#8e8e93", opacity: 0.85 }, emphasis: { focus: "series" } }))
           .concat([{ name: FAIL, type: "scatter", symbolSize: 8, data: pts.filter(p => p.v === FAIL).map(p => [p.d, p.p, p]),   // 유찰 = × 표시 (사용자 지정 2026-11-17)
             symbol: "path://M2,0L5,3L8,0L10,2L7,5L10,8L8,10L5,7L2,10L0,8L3,5L0,2Z", itemStyle: { color: "#8e8e93" }, emphasis: { focus: "series" } },
-            { name: NT, type: "scatter", symbolSize: 9, data: (K.notice && K.notice[volt] || []).filter(p => p.d >= cut).map(p => [p.d, p.p, p]),   // 진행 중 공고 = 빈 동그라미 (사용자 지정 2026-11-20)
+            { name: NT, type: "scatter", symbolSize: 6.5, data: (K.notice && K.notice[volt] || []).filter(p => p.d >= cut).map(p => [p.d, p.p, p]),   // 진행 중 공고 = 빈 동그라미 (사용자 지정 2026-11-20)
               symbol: "emptyCircle", itemStyle: { color: "#1d1d1f", borderWidth: 1.5 }, emphasis: { focus: "series" } },
             { name: "평균 계약 단가", type: "line", showSymbol: false, smooth: 0.15, z: 10, data: P.line.filter(r => r[0] >= cut).map(r => [r[0] + "-15", r[1]]),
               lineStyle: { width: 2.5, color: "#1d1d1f" }, itemStyle: { color: "#1d1d1f" } }]);
