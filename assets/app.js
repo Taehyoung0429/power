@@ -721,7 +721,7 @@
     seg($("#mkSeg"), v => { mr = v; drawMk(); });
     toggleData($("#mkData"), $("#mkDataBox"), () => { const s = cur; dataTable($("#mkDataBox"), ["날짜", s.name], s.dates.map((x, i) => [x, s.vals[i]]).reverse(), s.name); });
     // 커버리지 상대주가
-    const rel = d.rel || []; let gi = +(($("#relSeg button.on") || {}).dataset || {}).v || 0, relMode = "rel";
+    const rel = d.rel || []; let gi = +(($("#relSeg button.on") || {}).dataset || {}).v || 0, relRng = "3m";   // 종가 보기 없앰, 기간 3개월·6개월·1년·3년 (사용자 지정 2026-11-20)
     const relEl = $("#relChart");
     // 장중 주가(live.json)를 오늘 날짜 점으로 붙임: 종가 = 실시간가, 상대값 = 직전 상대값 × (실시간가 / 직전 종가)
     const withLive = g => { const L = window.__live; if (!L || !L.at) return g;
@@ -735,15 +735,23 @@
         const relv = s.rel ? (add ? s.rel.concat([rp]) : s.rel.slice(0, -1).concat([rp])) : s.rel;
         return Object.assign({}, s, { abs, rel: relv }); });
       return Object.assign({}, g, { dates: add ? g.dates.concat([day]) : g.dates, series }); };
-    const drawRel = () => { const g = withLive(rel[gi]); if (!g || !relEl._chart) return;
-      const ss = g.series.map(s => ({ name: s.name, vals: relMode === "rel" ? s.rel : s.abs, dash: s.index, bold: s.index, color: s.index ? "#8e8e93" : undefined, base: relMode === "rel" ? 100 : null }));
-      relEl._chart.setOption(lineOption(g.dates, relMode === "rel" ? ss : ss.filter(s => !/(pt)/.test(s.name)), { unit: relMode === "rel" ? `(${g.base})` : "(종가)", zoom: true, endLabel: true }), true);   // 마지막 값 라벨 (홈과 같게) + 오른쪽 여백으로 마지막 날짜 안 잘림
-      $("#relNote").textContent = `기준일 ${g.base}. 점선 = 지수.`; };
+    // 고른 기간의 첫 거래일 = 100 (그날 휴장·상장 전이면 그 뒤 첫 종가)
+    const relCalc = () => { const g = withLive(rel[gi]); if (!g) return null;
+      const days = { "3m": 92, "6m": 183, "1y": 366, "3y": 1096 }[relRng], cut = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);
+      let s0 = g.dates.findIndex(x => x >= cut); if (s0 < 0) s0 = 0;
+      const series = g.series.map(s => { const v = s.abs.slice(s0); let b = s0 > 0 ? s.abs.slice(0, s0 + 1).reverse().find(y => y != null) : null; if (b == null) b = v.find(y => y != null);
+        return { name: s.name, index: s.index, vals: v.map(y => y == null || !b ? null : +(y / b * 100).toFixed(2)) }; });
+      return { dates: g.dates.slice(s0), series }; };
+    const drawRel = () => { const r = relCalc(); if (!r || !relEl._chart) return;
+      const base = r.dates[0].slice(2).replace(/-/g, ".");
+      const ss = r.series.map(s => ({ name: s.name, vals: s.vals, dash: s.index, bold: s.index, color: s.index ? "#8e8e93" : undefined, base: 100 }));
+      relEl._chart.setOption(lineOption(r.dates, ss, { unit: `(${base}=100)`, zoom: true, endLabel: true }), true);   // 마지막 값 라벨 (홈과 같게) + 오른쪽 여백으로 마지막 날짜 안 잘림
+      $("#relNote").textContent = `기준일 ${base}. 점선 = 지수.`; };
     if (relEl) lazy(relEl, () => drawRel());
     seg($("#relSeg"), v => { gi = +v; drawRel(); });
     document.addEventListener("live", () => drawRel());
-    seg($("#relMode"), v => { relMode = v; drawRel(); });
-    toggleData($("#relData"), $("#relDataBox"), () => { const g = rel[gi]; dataTable($("#relDataBox"), ["날짜", ...g.series.map(s => s.name)], g.dates.map((x, i) => [x, ...g.series.map(s => (relMode === "rel" ? s.rel : s.abs)[i])]).reverse(), "상대주가_" + g.group); });
+    seg($("#relRng"), v => { relRng = v; drawRel(); });
+    toggleData($("#relData"), $("#relDataBox"), () => { const r = relCalc(); dataTable($("#relDataBox"), ["날짜", ...r.series.map(s => s.name)], r.dates.map((x, i) => [x, ...r.series.map(s => s.vals[i])]).reverse(), "상대주가_" + rel[gi].group); });
     // PER·PBR
     const pp = d.per_pbr || []; let pg = Math.max(0, pp.findIndex(g => g.group === "전력 솔루션"));   // 기본 = 전력 솔루션 (사용자 지정 2026-11-18)
     // PER·PBR 을 좌우 두 그래프로 (2026-10-12, PPI 와 같은 배치). x = 연도, 선 = 기업
